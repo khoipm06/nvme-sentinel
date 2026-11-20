@@ -49,6 +49,11 @@ public sealed class LiveThroughputChartControl : Control
         set => SetValue(IsDarkThemeProperty, value);
     }
 
+    private bool? _cachedIsDark;
+    private Pen? _cachedDashedPen;
+    private Pen? _cachedSolidBasePen;
+    private IBrush? _cachedLabelBrush;
+
     public override void Render(DrawingContext context)
     {
         base.Render(context);
@@ -59,10 +64,18 @@ public sealed class LiveThroughputChartControl : Control
 
         var plot = new Rect(0, 14, w, Math.Max(10, h - 30));
 
-        var lineColor = IsDarkTheme ? Color.FromArgb(26, 239, 240, 241) : Color.FromArgb(30, 20, 20, 19);
-        var labelBrush = IsDarkTheme ? new SolidColorBrush(Color.Parse("#8E9196")) : new SolidColorBrush(Color.Parse("#65645E"));
-        var dashedPen = new Pen(new SolidColorBrush(lineColor), 1, new DashStyle([2, 4], 0));
-        var solidBasePen = new Pen(new SolidColorBrush(lineColor), 1);
+        if (_cachedIsDark != IsDarkTheme || _cachedDashedPen is null || _cachedLabelBrush is null || _cachedSolidBasePen is null)
+        {
+            _cachedIsDark = IsDarkTheme;
+            var lineColor = IsDarkTheme ? Color.FromArgb(26, 239, 240, 241) : Color.FromArgb(30, 20, 20, 19);
+            _cachedLabelBrush = IsDarkTheme ? new SolidColorBrush(Color.Parse("#8E9196")) : new SolidColorBrush(Color.Parse("#65645E"));
+            _cachedDashedPen = new Pen(new SolidColorBrush(lineColor), 1, new DashStyle([2, 4], 0));
+            _cachedSolidBasePen = new Pen(new SolidColorBrush(lineColor), 1);
+        }
+
+        var labelBrush = _cachedLabelBrush;
+        var dashedPen = _cachedDashedPen;
+        var solidBasePen = _cachedSolidBasePen;
 
         var reads = ReadHistory ?? [];
         var writes = WriteHistory ?? [];

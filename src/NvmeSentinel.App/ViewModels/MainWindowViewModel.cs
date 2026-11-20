@@ -757,24 +757,27 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         WriteRateHistory = _writeRing.ToList();
         LiveChartRevision++;
 
-        LiveProcesses.Clear();
-        bool markedTopWriter = false;
-        foreach (var p in live.TopActiveProcesses)
+        if (IsLiveProcessesPage)
         {
-            bool isTop = !markedTopWriter && p.WriteBytesPerSec >= 10_240;
-            if (isTop) markedTopWriter = true;
-
-            LiveProcesses.Add(new LiveProcessRow
+            LiveProcesses.Clear();
+            bool markedTopWriter = false;
+            foreach (var p in live.TopActiveProcesses)
             {
-                Pid = p.Pid,
-                ProcessName = p.ProcessName,
-                WriteRateText = ByteFormatter.FormatRate(p.WriteBytesPerSec),
-                ReadRateText = ByteFormatter.FormatRate(p.ReadBytesPerSec),
-                SessionWrittenText = ByteFormatter.FormatBytes(p.SessionBytesWritten),
-                SessionReadText = ByteFormatter.FormatBytes(p.SessionBytesRead),
-                ExecutablePath = string.IsNullOrWhiteSpace(p.ExecutablePath) ? "—" : p.ExecutablePath,
-                IsActivelyWriting = isTop
-            });
+                bool isTop = !markedTopWriter && p.WriteBytesPerSec >= 10_240;
+                if (isTop) markedTopWriter = true;
+
+                LiveProcesses.Add(new LiveProcessRow
+                {
+                    Pid = p.Pid,
+                    ProcessName = p.ProcessName,
+                    WriteRateText = ByteFormatter.FormatRate(p.WriteBytesPerSec),
+                    ReadRateText = ByteFormatter.FormatRate(p.ReadBytesPerSec),
+                    SessionWrittenText = ByteFormatter.FormatBytes(p.SessionBytesWritten),
+                    SessionReadText = ByteFormatter.FormatBytes(p.SessionBytesRead),
+                    ExecutablePath = string.IsNullOrWhiteSpace(p.ExecutablePath) ? "—" : p.ExecutablePath,
+                    IsActivelyWriting = isTop
+                });
+            }
         }
 
         var trayState = HealthScore < 40 || live.CompositeTempCelsius >= EditCriticalTempC
