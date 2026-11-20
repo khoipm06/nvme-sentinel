@@ -1,0 +1,15 @@
+[Unit]
+Description=NVMe Sentinel Background Endurance Monitoring Daemon
+Documentation=https://github.com/khoipm06/nvme-sentinel
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/share/nvme-sentinel/nvme-sentinel-daemon
+Restart=on-failure
+RestartSec=5s
+MemoryHigh=80M
+MemoryMax=120M
+
+[Install]
+WantedBy=default.target

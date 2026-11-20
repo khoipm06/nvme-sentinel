@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=NVMe Sentinel
+GenericName=NVMe Health & Endurance Monitor
+Comment=Native hardware monitoring and endurance tracking for NVMe SSDs
+Exec=nvme-sentinel
+Icon=nvme-sentinel
+Terminal=false
+Categories=System;Monitor;
+Keywords=nvme;ssd;health;tbw;smart;temperature;storage;
+StartupNotify=true
+StartupWMClass=nvme-sentinel
