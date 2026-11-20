@@ -1,0 +1,75 @@
+name: Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore NvmeSentinel.sln
+
+      - name: Run Tests
+        run: dotnet test NvmeSentinel.sln --no-restore --verbosity normal
+
+  build-and-release:
+    name: Build & Publish Release Packages
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install Packaging Utilities
+        run: sudo apt-get update && sudo apt-get install -y zip tar
+
+      - name: Build Cross-Platform Bundles
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name || inputs.tag }}
+        run: |
+          chmod +x scripts/publish-crossplatform.sh
+          ./scripts/publish-crossplatform.sh "${{ github.ref_name || inputs.tag }}"
+
+      - name: Verify Generated Packages
+        run: |
+          ls -lh dist/
+          cat dist/SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: NVMe Sentinel ${{ github.ref_name || inputs.tag }}
+          tag_name: ${{ github.ref_name || inputs.tag }}
+          files: |
+            dist/nvme-sentinel-*.tar.gz
+            dist/nvme-sentinel-*.zip
+            dist/SHA256SUMS.txt
+          generate_release_notes: true
+          draft: false
+          prerelease: false
