@@ -1,0 +1,148 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:suki="clr-namespace:SukiUI;assembly=SukiUI"
+             x:Class="NvmeSentinel.App.App"
+             RequestedThemeVariant="Dark">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <!-- Graphite & Safety Orange (taste-skill hardware/devtool dark-neutral) -->
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="AppBgBrush" Color="#0E0F11" />
+                    <SolidColorBrush x:Key="SidebarBgBrush" Color="#121316" />
+                    <SolidColorBrush x:Key="PanelBgBrush" Color="#16171A" />
+                    <SolidColorBrush x:Key="SubtleFillBrush" Color="#1E2024" />
+                    <SolidColorBrush x:Key="MeterTrackBrush" Color="#26282E" />
+                    <SolidColorBrush x:Key="HairlineBrush" Color="#25272C" />
+                    <SolidColorBrush x:Key="HairlineStrongBrush" Color="#32353C" />
+                    <SolidColorBrush x:Key="InkBrush" Color="#EFF0F1" />
+                    <SolidColorBrush x:Key="MutedBrush" Color="#8E9196" />
+                    <SolidColorBrush x:Key="ButtonInkBgBrush" Color="#EFF0F1" />
+                    <SolidColorBrush x:Key="ButtonInkFgBrush" Color="#0E0F11" />
+                    <SolidColorBrush x:Key="AccentBrush" Color="#E8571F" />
+                    <SolidColorBrush x:Key="AccentTintBrush" Color="#24E8571F" />
+                </ResourceDictionary>
+
+                <!-- Warm Stone Paper & Signal Terracotta (taste-skill light-neutral) -->
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="AppBgBrush" Color="#F4F4F2" />
+                    <SolidColorBrush x:Key="SidebarBgBrush" Color="#ECECE8" />
+                    <SolidColorBrush x:Key="PanelBgBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="SubtleFillBrush" Color="#F0EFEA" />
+                    <SolidColorBrush x:Key="MeterTrackBrush" Color="#E2E1DC" />
+                    <SolidColorBrush x:Key="HairlineBrush" Color="#E2E1DC" />
+                    <SolidColorBrush x:Key="HairlineStrongBrush" Color="#CFCec8" />
+                    <SolidColorBrush x:Key="InkBrush" Color="#141413" />
+                    <SolidColorBrush x:Key="MutedBrush" Color="#63625C" />
+                    <SolidColorBrush x:Key="ButtonInkBgBrush" Color="#141413" />
+                    <SolidColorBrush x:Key="ButtonInkFgBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="AccentBrush" Color="#D94814" />
+                    <SolidColorBrush x:Key="AccentTintBrush" Color="#1CD94814" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <suki:SukiTheme ThemeColor="Orange" />
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
+
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+            <Setter Property="FontSize" Value="13.5" />
+        </Style>
+
+        <!-- Architectural hairline panel: 1 step off ground, 1px border, sharp-soft 10px radius, zero shadow -->
+        <Style Selector="Border.panel">
+            <Setter Property="Background" Value="{DynamicResource PanelBgBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+        </Style>
+
+        <!-- Compact sidebar navigation row (.ui-win__nav) -->
+        <Style Selector="Button.nav-row">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+        </Style>
+
+        <Style Selector="Button.nav-row:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SubtleFillBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+        </Style>
+
+        <Style Selector="Button.nav-row.active">
+            <Setter Property="Background" Value="{DynamicResource SubtleFillBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+            <Setter Property="FontWeight" Value="Medium" />
+        </Style>
+
+        <!-- Primary button: Solid Ink (as on figma.com & x.ai) -->
+        <Style Selector="Button.btn-primary">
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="{DynamicResource ButtonInkBgBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ButtonInkFgBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="Button.btn-primary:pointerover">
+            <Setter Property="Opacity" Value="0.88" />
+        </Style>
+
+        <!-- Secondary button: Quiet surface + 1px hairline -->
+        <Style Selector="Button.btn-secondary">
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="{DynamicResource PanelBgBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource HairlineStrongBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="Button.btn-secondary:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SubtleFillBrush}" />
+        </Style>
+
+        <!-- Segmented toolbar button -->
+        <Style Selector="Button.seg">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="Button.seg:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+        </Style>
+
+        <Style Selector="Button.seg.active">
+            <Setter Property="Background" Value="{DynamicResource PanelBgBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource HairlineStrongBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+    </Application.Styles>
+</Application>
