@@ -173,6 +173,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string _databaseSizeText = "—";
     [ObservableProperty] private string _databasePathText = "—";
     [ObservableProperty] private string _lastFlushSummary = "—";
+    [ObservableProperty] private string _appVersionText = $"v{typeof(MainWindowViewModel).Assembly.GetName().Version?.ToString(3) ?? "1.0.0"}";
 
     [ObservableProperty] private int _editFlushMinutes = 10;
     [ObservableProperty] private double _editSpikeThresholdGb = 5.0;

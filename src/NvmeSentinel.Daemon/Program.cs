@@ -5,6 +5,13 @@ using NvmeSentinel.Daemon;
 
 var argsSet = new HashSet<string>(args, StringComparer.OrdinalIgnoreCase);
 
+if (argsSet.Contains("--version") || argsSet.Contains("-v"))
+{
+    var ver = typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
+    Console.WriteLine($"nvme-sentinel-daemon v{ver}");
+    return 0;
+}
+
 if (argsSet.Contains("--help") || argsSet.Contains("-h"))
 {
     Console.WriteLine("""
@@ -14,6 +21,8 @@ if (argsSet.Contains("--help") || argsSet.Contains("-h"))
           nvme-sentinel-daemon --status     Print running daemon status as JSON
           nvme-sentinel-daemon --once       Collect a one-shot hardware snapshot as JSON
           nvme-sentinel-daemon --stop       Gracefully stop a running daemon instance
+          nvme-sentinel-daemon --version    Show version information
+          nvme-sentinel-daemon --help       Show this help message
         """);
     return 0;
 }

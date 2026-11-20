@@ -6,6 +6,7 @@
         x:Class="NvmeSentinel.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="NVMe Sentinel"
+        Icon="/Assets/nvme-sentinel.png"
         Width="1320"
         Height="840"
         MinWidth="1040"
@@ -734,6 +735,13 @@
                                         <TextBlock Grid.Column="0" Text="Daemon process" FontSize="15.5" FontWeight="SemiBold" />
                                         <TextBlock Grid.Column="1" Text="{Binding DaemonMemoryFormatted, StringFormat='{}{0} RSS'}" FontFamily="Monospace" FontSize="13" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
                                     </Grid>
+
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,8">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Grid.Column="0" Text="App version" Foreground="{DynamicResource MutedBrush}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding AppVersionText}" FontFamily="Monospace" FontSize="13" />
+                                        </Grid>
+                                    </Border>
 
                                     <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,8">
                                         <Grid ColumnDefinitions="*,Auto">
