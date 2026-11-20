@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
@@ -9,6 +10,7 @@ public sealed class LinuxNvmeProvider : INvmeProvider
 {
     public string BackendName => "Linux Sysfs + UDisks2 NVMe";
 
+    private static readonly ConcurrentDictionary<string, List<(string InputPath, string Label)>> _hwmonSensorCache = new(StringComparer.Ordinal);
     private DateTimeOffset _lastUdisksSmartRefresh = DateTimeOffset.MinValue;
 
     public async Task<List<NvmeDeviceInfo>> DiscoverDevicesAsync(CancellationToken ct = default)
@@ -90,20 +92,32 @@ public sealed class LinuxNvmeProvider : INvmeProvider
             var raw = ReadSysfsTrimmed(statPath);
             if (!string.IsNullOrEmpty(raw))
             {
-                // Kernel /sys/block/<dev>/stat fields:
-                // 0: read I/Os, 1: read merges, 2: read sectors (512B), 3: read ticks,
-                // 4: write I/Os, 5: write merges, 6: write sectors (512B), ...
-                var parts = raw.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length >= 7)
+                var span = raw.AsSpan();
+                int field = 0;
+                while (!span.IsEmpty)
                 {
-                    if (long.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var rIos))
-                        counters.ReadCompletedOps = rIos;
-                    if (long.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var rSec))
-                        counters.TotalBytesRead = rSec * 512L;
-                    if (long.TryParse(parts[4], NumberStyles.Integer, CultureInfo.InvariantCulture, out var wIos))
-                        counters.WriteCompletedOps = wIos;
-                    if (long.TryParse(parts[6], NumberStyles.Integer, CultureInfo.InvariantCulture, out var wSec))
-                        counters.TotalBytesWritten = wSec * 512L;
+                    int start = 0;
+                    while (start < span.Length && span[start] == ' ') start++;
+                    if (start >= span.Length) break;
+
+                    span = span[start..];
+                    int spaceIdx = span.IndexOf(' ');
+                    var token = spaceIdx >= 0 ? span[..spaceIdx] : span;
+                    span = spaceIdx >= 0 ? span[spaceIdx..] : ReadOnlySpan<char>.Empty;
+
+                    if (long.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out var val))
+                    {
+                        switch (field)
+                        {
+                            case 0: counters.ReadCompletedOps = val; break;
+                            case 2: counters.TotalBytesRead = val * 512L; break;
+                            case 4: counters.WriteCompletedOps = val; break;
+                            case 6: counters.TotalBytesWritten = val * 512L; break;
+                        }
+                    }
+
+                    field++;
+                    if (field > 6) break;
                 }
             }
         }
@@ -416,32 +430,38 @@ public sealed class LinuxNvmeProvider : INvmeProvider
         var readings = new List<SensorReading>();
         try
         {
-            var hwmonDirs = Directory.GetDirectories(ctrlDir, "hwmon*");
-            foreach (var hwDir in hwmonDirs)
+            if (!_hwmonSensorCache.TryGetValue(ctrlDir, out var cachedPaths))
             {
-                foreach (var inputFile in Directory.GetFiles(hwDir, "temp*_input").OrderBy(f => f, StringComparer.Ordinal))
+                cachedPaths = [];
+                var hwmonDirs = Directory.GetDirectories(ctrlDir, "hwmon*");
+                foreach (var hwDir in hwmonDirs)
                 {
-                    var raw = ReadSysfsTrimmed(inputFile);
-                    if (!long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var milliC))
+                    foreach (var inputFile in Directory.GetFiles(hwDir, "temp*_input").OrderBy(f => f, StringComparer.Ordinal))
                     {
-                        continue;
+                        var labelFile = inputFile.Replace("_input", "_label", StringComparison.Ordinal);
+                        var label = ReadSysfsTrimmed(labelFile) ?? Path.GetFileNameWithoutExtension(inputFile);
+                        cachedPaths.Add((inputFile, label));
                     }
+                }
+                _hwmonSensorCache[ctrlDir] = cachedPaths;
+            }
 
+            foreach (var (inputFile, label) in cachedPaths)
+            {
+                var raw = ReadSysfsTrimmed(inputFile);
+                if (long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var milliC))
+                {
                     var c = Math.Round(milliC / 1000.0, 1);
-                    if (c <= -40 || c >= 180)
+                    if (c > -40 && c < 180)
                     {
-                        continue;
+                        readings.Add(new SensorReading { Label = label, Celsius = c });
                     }
-
-                    var labelFile = inputFile.Replace("_input", "_label", StringComparison.Ordinal);
-                    var label = ReadSysfsTrimmed(labelFile) ?? Path.GetFileNameWithoutExtension(inputFile);
-                    readings.Add(new SensorReading { Label = label, Celsius = c });
                 }
             }
         }
         catch
         {
-            // Ignore transient sysfs access errors
+            _hwmonSensorCache.TryRemove(ctrlDir, out _);
         }
 
         return readings;

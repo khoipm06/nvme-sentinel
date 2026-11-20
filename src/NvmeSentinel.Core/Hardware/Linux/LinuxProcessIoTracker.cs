@@ -9,6 +9,7 @@ public sealed class LinuxProcessIoTracker : IProcessIoTracker
     {
         public string Name { get; set; } = string.Empty;
         public string ExePath { get; set; } = string.Empty;
+        public string IoPath { get; set; } = string.Empty;
         public long LastReadBytes { get; set; }
         public long LastWriteBytes { get; set; }
         public long SessionReadBytes { get; set; }
@@ -18,6 +19,9 @@ public sealed class LinuxProcessIoTracker : IProcessIoTracker
 
     private readonly Dictionary<int, PidState> _pidStates = new();
     private bool _initialized;
+
+    [ThreadStatic]
+    private static byte[]? t_ioBuffer;
 
     public ProcessPollResult Poll(double elapsedSeconds, long blockWriteDeltaBytes)
     {
@@ -38,23 +42,27 @@ public sealed class LinuxProcessIoTracker : IProcessIoTracker
             foreach (var dir in Directory.EnumerateDirectories("/proc"))
             {
                 var span = Path.GetFileName(dir.AsSpan());
-                if (!int.TryParse(span, NumberStyles.None, CultureInfo.InvariantCulture, out int pid) || pid <= 0)
+                if (span.IsEmpty || !char.IsAsciiDigit(span[0]) || !int.TryParse(span, NumberStyles.None, CultureInfo.InvariantCulture, out int pid) || pid <= 0)
                 {
                     continue;
                 }
 
-                if (!TryReadProcIo(dir, out long readBytes, out long writeBytes))
+                bool isExisting = _pidStates.TryGetValue(pid, out var state);
+                string ioPath = isExisting && state is not null ? state.IoPath : Path.Combine(dir, "io");
+
+                if (!TryReadProcIo(ioPath, out long readBytes, out long writeBytes))
                 {
                     continue;
                 }
 
-                if (!_pidStates.TryGetValue(pid, out var state))
+                if (!isExisting || state is null)
                 {
                     var (name, exePath) = ReadProcessIdentity(dir, pid);
                     state = new PidState
                     {
                         Name = name,
                         ExePath = exePath,
+                        IoPath = ioPath,
                         LastReadBytes = readBytes,
                         LastWriteBytes = writeBytes
                     };
@@ -143,39 +151,45 @@ public sealed class LinuxProcessIoTracker : IProcessIoTracker
         return result;
     }
 
-    private static bool TryReadProcIo(string procPidDir, out long readBytes, out long writeBytes)
+    private static bool TryReadProcIo(string ioPath, out long readBytes, out long writeBytes)
     {
         readBytes = 0;
         writeBytes = 0;
         try
         {
-            var ioPath = Path.Combine(procPidDir, "io");
-            using var sr = new StreamReader(ioPath);
-            string? line;
+            using var fs = new FileStream(ioPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 256, FileOptions.SequentialScan);
+            t_ioBuffer ??= new byte[512];
+            int read = fs.Read(t_ioBuffer, 0, t_ioBuffer.Length);
+            if (read <= 0) return false;
+
+            var span = t_ioBuffer.AsSpan(0, read);
             int found = 0;
-            while ((line = sr.ReadLine()) is not null)
+
+            int idx = 0;
+            while (idx < span.Length)
             {
-                if (line.StartsWith("read_bytes:", StringComparison.Ordinal))
+                var lineEnd = span[idx..].IndexOf((byte)'\n');
+                var line = lineEnd >= 0 ? span.Slice(idx, lineEnd) : span[idx..];
+                idx += lineEnd >= 0 ? lineEnd + 1 : span.Length;
+
+                if (line.StartsWith("read_bytes:"u8))
                 {
-                    if (long.TryParse(line.AsSpan(11).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var r))
+                    if (TryParseAsciiLong(line[11..].Trim((byte)' '), out var r))
                     {
                         readBytes = r;
                         found++;
                     }
                 }
-                else if (line.StartsWith("write_bytes:", StringComparison.Ordinal))
+                else if (line.StartsWith("write_bytes:"u8))
                 {
-                    if (long.TryParse(line.AsSpan(12).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var w))
+                    if (TryParseAsciiLong(line[12..].Trim((byte)' '), out var w))
                     {
                         writeBytes = w;
                         found++;
                     }
                 }
 
-                if (found == 2)
-                {
-                    return true;
-                }
+                if (found == 2) break;
             }
 
             return found > 0;
@@ -184,6 +198,19 @@ public sealed class LinuxProcessIoTracker : IProcessIoTracker
         {
             return false;
         }
+    }
+
+    private static bool TryParseAsciiLong(ReadOnlySpan<byte> bytes, out long value)
+    {
+        value = 0;
+        if (bytes.IsEmpty) return false;
+        for (int i = 0; i < bytes.Length; i++)
+        {
+            byte b = bytes[i];
+            if (b is < (byte)'0' or > (byte)'9') return false;
+            value = value * 10 + (b - '0');
+        }
+        return true;
     }
 
     private static (string Name, string ExePath) ReadProcessIdentity(string procPidDir, int pid)

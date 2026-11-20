@@ -7,6 +7,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <GarbageCollectionAdaptationMode>1</GarbageCollectionAdaptationMode>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <TieredPGO>true</TieredPGO>
   </PropertyGroup>
 
   <ItemGroup>

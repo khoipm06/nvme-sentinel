@@ -617,12 +617,44 @@ public sealed class TimeSeriesStore : IDisposable
         };
     }
 
-    public (long Written, long Read) GetTodayTransferTotals(string deviceId, IReadOnlyList<BufferedBucket>? unflushed = null)
+    public (long TotalBytesWrittenDelta, long TotalBytesReadDelta) GetTodayTransferTotals(string deviceId, IReadOnlyList<BufferedBucket>? unflushed = null)
     {
         var nowLocal = DateTimeOffset.Now;
         var startOfLocalDayUtc = new DateTimeOffset(nowLocal.Year, nowLocal.Month, nowLocal.Day, 0, 0, 0, nowLocal.Offset).ToUniversalTime();
-        var inspection = InspectRange(deviceId, startOfLocalDayUtc, DateTimeOffset.UtcNow.AddMinutes(1), unflushed);
-        return (inspection.TotalBytesWrittenDelta, inspection.TotalBytesReadDelta);
+        long startTs = startOfLocalDayUtc.ToUnixTimeSeconds();
+        long endTs = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 60;
+
+        long dbW = 0, dbR = 0;
+        lock (_sync)
+        {
+            using var conn = OpenConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                SELECT COALESCE(SUM(delta_bytes_written), 0), COALESCE(SUM(delta_bytes_read), 0)
+                FROM smart_samples_raw
+                WHERE device_id = $id AND bucket_start_ts >= $start AND bucket_start_ts <= $end;
+                """;
+            cmd.Parameters.AddWithValue("$id", deviceId);
+            cmd.Parameters.AddWithValue("$start", startTs);
+            cmd.Parameters.AddWithValue("$end", endTs);
+            using var r = cmd.ExecuteReader();
+            if (r.Read())
+            {
+                dbW = r.GetInt64(0);
+                dbR = r.GetInt64(1);
+            }
+        }
+
+        if (unflushed is { Count: > 0 })
+        {
+            foreach (var b in unflushed.Where(x => x.DeviceId == deviceId && x.BucketStartUtc >= startOfLocalDayUtc))
+            {
+                dbW += b.DeltaBytesWritten;
+                dbR += b.DeltaBytesRead;
+            }
+        }
+
+        return (dbW, dbR);
     }
 
     public Dictionary<string, SmartSnapshot> LoadLatestSmartSnapshots()

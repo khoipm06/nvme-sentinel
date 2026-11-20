@@ -26,6 +26,8 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
     private readonly List<AlertEvent> _pendingAlerts = [];
     private readonly Dictionary<string, DateTimeOffset> _thermalAlertCooldown = new(StringComparer.Ordinal);
 
+    private DateTimeOffset _lastProcessScanUtc = DateTimeOffset.MinValue;
+    private readonly Dictionary<string, (long WrittenBaseline, long ReadBaseline, DateOnly Day)> _todayBaselines = new(StringComparer.Ordinal);
     private DaemonSettings _settings = new();
     private DateTimeOffset? _lastFlushUtc;
     private DateTimeOffset _lastSmartPollUtc = DateTimeOffset.MinValue;
@@ -176,7 +178,18 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
         }
 
         // 2. Poll per-process I/O attribution once across system
-        var procPoll = _processTracker.Poll(dt, totalBlockWriteDeltaAllDrives);
+        // When running headless with zero disk writes, skip heavy /proc crawling to preserve CPU and battery
+        bool needsProcessScan = _ipcServer.SubscriberCount > 0 || totalBlockWriteDeltaAllDrives > 65_536 || (now - _lastProcessScanUtc).TotalSeconds >= 10.0;
+        ProcessPollResult procPoll;
+        if (needsProcessScan)
+        {
+            _lastProcessScanUtc = now;
+            procPoll = _processTracker.Poll(dt, totalBlockWriteDeltaAllDrives);
+        }
+        else
+        {
+            procPoll = new ProcessPollResult();
+        }
 
         // 3. Periodically refresh NVMe SMART (faster when self-test is active)
         bool selfTestRunning;
@@ -343,8 +356,16 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
                     }
                 }
 
-                var unflushedList = _bufferedBuckets.Values.ToList();
-                var (todayWritten, todayRead) = _store.GetTodayTransferTotals(dev.DeviceId, unflushedList);
+                long curUnflushedW = 0, curUnflushedR = 0;
+                foreach (var b in _bufferedBuckets.Values)
+                {
+                    if (b.DeviceId == dev.DeviceId)
+                    {
+                        curUnflushedW += b.DeltaBytesWritten;
+                        curUnflushedR += b.DeltaBytesRead;
+                    }
+                }
+                var (todayWritten, todayRead) = GetCachedTodayTotals(dev.DeviceId, now, curUnflushedW, curUnflushedR);
 
                 var live = new LiveTelemetry
                 {
@@ -462,6 +483,19 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
         }
     }
 
+    private (long Written, long Read) GetCachedTodayTotals(string devId, DateTimeOffset now, long currentUnflushedW, long currentUnflushedR)
+    {
+        var localDay = DateOnly.FromDateTime(now.ToLocalTime().DateTime);
+        if (!_todayBaselines.TryGetValue(devId, out var baseEntry) || baseEntry.Day != localDay)
+        {
+            var dbTotals = _store.GetTodayTransferTotals(devId, null);
+            baseEntry = (dbTotals.TotalBytesWrittenDelta, dbTotals.TotalBytesReadDelta, localDay);
+            _todayBaselines[devId] = baseEntry;
+        }
+
+        return (baseEntry.WrittenBaseline + currentUnflushedW, baseEntry.ReadBaseline + currentUnflushedR);
+    }
+
     public void FlushToDatabase()
     {
         List<BufferedBucket> bucketsToFlush;
@@ -473,6 +507,7 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
 
         lock (_stateLock)
         {
+            _todayBaselines.Clear();
             bucketsToFlush = _bufferedBuckets.Values.ToList();
             smartCopy = new Dictionary<string, SmartSnapshot>(_latestSmart, StringComparer.Ordinal);
             alertsToSave = _pendingAlerts.ToList();
