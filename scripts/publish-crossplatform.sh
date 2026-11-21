@@ -27,8 +27,10 @@ for RID in "${RIDS[@]}"; do
     echo "=================================================="
 
     # 1. STANDALONE (Self-contained, Single-File)
-    BUILD_DIR="/tmp/pub-sentinel-${RID}-standalone"
-    rm -rf "$BUILD_DIR"
+    ARCHIVE_BASE="nvme-sentinel-v${VERSION}-${RID}-standalone"
+    BUILD_ROOT="/tmp/pub-sentinel-${RID}-standalone"
+    BUILD_DIR="$BUILD_ROOT/$ARCHIVE_BASE"
+    rm -rf "$BUILD_ROOT"
     mkdir -p "$BUILD_DIR"
 
     echo "  -> Publishing Daemon (Standalone)..."
@@ -63,30 +65,32 @@ for RID in "${RIDS[@]}"; do
         cp packaging/linux/nvme-sentinel.desktop "$BUILD_DIR/nvme-sentinel.desktop"
         cp packaging/linux/nvme-sentinel.service "$BUILD_DIR/nvme-sentinel.service"
         chmod +x "$BUILD_DIR/install.sh" "$BUILD_DIR/uninstall.sh"
-        ARCHIVE_NAME="nvme-sentinel-v${VERSION}-${RID}-standalone.tar.gz"
+        ARCHIVE_NAME="${ARCHIVE_BASE}.tar.gz"
         echo "  -> Packaging $ARCHIVE_NAME..."
-        tar -czf "$DIST_DIR/$ARCHIVE_NAME" -C "$BUILD_DIR" .
+        tar -czf "$DIST_DIR/$ARCHIVE_NAME" -C "$BUILD_ROOT" "$ARCHIVE_BASE"
     elif [[ "$RID" == win* ]]; then
         cp packaging/windows/install.ps1 "$BUILD_DIR/install.ps1"
         cp packaging/windows/install.cmd "$BUILD_DIR/install.cmd"
         cp packaging/windows/uninstall.ps1 "$BUILD_DIR/uninstall.ps1"
-        ARCHIVE_NAME="nvme-sentinel-v${VERSION}-${RID}-standalone.zip"
+        ARCHIVE_NAME="${ARCHIVE_BASE}.zip"
         echo "  -> Packaging $ARCHIVE_NAME..."
-        (cd "$BUILD_DIR" && zip -qr9 "$DIST_DIR/$ARCHIVE_NAME" .)
+        (cd "$BUILD_ROOT" && zip -qr9 "$DIST_DIR/$ARCHIVE_NAME" "$ARCHIVE_BASE")
     elif [[ "$RID" == osx* ]]; then
         cp packaging/macos/install.sh "$BUILD_DIR/install.sh"
         cp packaging/macos/uninstall.sh "$BUILD_DIR/uninstall.sh"
         cp packaging/macos/com.khoipm.nvme-sentinel.plist "$BUILD_DIR/com.khoipm.nvme-sentinel.plist"
         chmod +x "$BUILD_DIR/install.sh" "$BUILD_DIR/uninstall.sh"
-        ARCHIVE_NAME="nvme-sentinel-v${VERSION}-${RID}-standalone.tar.gz"
+        ARCHIVE_NAME="${ARCHIVE_BASE}.tar.gz"
         echo "  -> Packaging $ARCHIVE_NAME..."
-        tar -czf "$DIST_DIR/$ARCHIVE_NAME" -C "$BUILD_DIR" .
+        tar -czf "$DIST_DIR/$ARCHIVE_NAME" -C "$BUILD_ROOT" "$ARCHIVE_BASE"
     fi
-    rm -rf "$BUILD_DIR"
+    rm -rf "$BUILD_ROOT"
 
     # 2. FRAMEWORK-DEPENDENT (FDD)
-    BUILD_DIR_FDD="/tmp/pub-sentinel-${RID}-fdd"
-    rm -rf "$BUILD_DIR_FDD"
+    ARCHIVE_BASE_FDD="nvme-sentinel-v${VERSION}-${RID}-fdd"
+    BUILD_ROOT_FDD="/tmp/pub-sentinel-${RID}-fdd"
+    BUILD_DIR_FDD="$BUILD_ROOT_FDD/$ARCHIVE_BASE_FDD"
+    rm -rf "$BUILD_ROOT_FDD"
     mkdir -p "$BUILD_DIR_FDD"
 
     echo "  -> Publishing Daemon (FDD)..."
@@ -113,26 +117,26 @@ for RID in "${RIDS[@]}"; do
         cp packaging/linux/nvme-sentinel.desktop "$BUILD_DIR_FDD/nvme-sentinel.desktop"
         cp packaging/linux/nvme-sentinel.service "$BUILD_DIR_FDD/nvme-sentinel.service"
         chmod +x "$BUILD_DIR_FDD/install.sh" "$BUILD_DIR_FDD/uninstall.sh"
-        ARCHIVE_NAME="nvme-sentinel-v${VERSION}-${RID}-fdd.tar.gz"
+        ARCHIVE_NAME="${ARCHIVE_BASE_FDD}.tar.gz"
         echo "  -> Packaging $ARCHIVE_NAME..."
-        tar -czf "$DIST_DIR/$ARCHIVE_NAME" -C "$BUILD_DIR_FDD" .
+        tar -czf "$DIST_DIR/$ARCHIVE_NAME" -C "$BUILD_ROOT_FDD" "$ARCHIVE_BASE_FDD"
     elif [[ "$RID" == win* ]]; then
         cp packaging/windows/install.ps1 "$BUILD_DIR_FDD/install.ps1"
         cp packaging/windows/install.cmd "$BUILD_DIR_FDD/install.cmd"
         cp packaging/windows/uninstall.ps1 "$BUILD_DIR_FDD/uninstall.ps1"
-        ARCHIVE_NAME="nvme-sentinel-v${VERSION}-${RID}-fdd.zip"
+        ARCHIVE_NAME="${ARCHIVE_BASE_FDD}.zip"
         echo "  -> Packaging $ARCHIVE_NAME..."
-        (cd "$BUILD_DIR_FDD" && zip -qr9 "$DIST_DIR/$ARCHIVE_NAME" .)
+        (cd "$BUILD_ROOT_FDD" && zip -qr9 "$DIST_DIR/$ARCHIVE_NAME" "$ARCHIVE_BASE_FDD")
     elif [[ "$RID" == osx* ]]; then
         cp packaging/macos/install.sh "$BUILD_DIR_FDD/install.sh"
         cp packaging/macos/uninstall.sh "$BUILD_DIR_FDD/uninstall.sh"
         cp packaging/macos/com.khoipm.nvme-sentinel.plist "$BUILD_DIR_FDD/com.khoipm.nvme-sentinel.plist"
         chmod +x "$BUILD_DIR_FDD/install.sh" "$BUILD_DIR_FDD/uninstall.sh"
-        ARCHIVE_NAME="nvme-sentinel-v${VERSION}-${RID}-fdd.tar.gz"
+        ARCHIVE_NAME="${ARCHIVE_BASE_FDD}.tar.gz"
         echo "  -> Packaging $ARCHIVE_NAME..."
-        tar -czf "$DIST_DIR/$ARCHIVE_NAME" -C "$BUILD_DIR_FDD" .
+        tar -czf "$DIST_DIR/$ARCHIVE_NAME" -C "$BUILD_ROOT_FDD" "$ARCHIVE_BASE_FDD"
     fi
-    rm -rf "$BUILD_DIR_FDD"
+    rm -rf "$BUILD_ROOT_FDD"
 done
 
 # 3. Checksums
