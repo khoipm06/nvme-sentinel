@@ -108,6 +108,9 @@ public partial class App : Application
         var openItem = new NativeMenuItem("Open NVMe Sentinel Dashboard");
         openItem.Click += (_, _) => RestoreMainWindow();
 
+        var themeItem = new NativeMenuItem("Toggle Theme (Dark / Light)");
+        themeItem.Click += (_, _) => _viewModel?.ToggleThemeCommand.Execute(null);
+
         var flushItem = new NativeMenuItem("Flush Telemetry Buffer Now");
         flushItem.Click += (_, _) => _viewModel?.FlushNowCommand.Execute(null);
 
@@ -124,6 +127,7 @@ public partial class App : Application
                 openItem,
                 _statusMenuItem,
                 new NativeMenuItemSeparator(),
+                themeItem,
                 flushItem,
                 new NativeMenuItemSeparator(),
                 quitGuiItem,

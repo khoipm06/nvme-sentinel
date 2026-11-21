@@ -100,8 +100,10 @@ dotnet test NvmeSentinel.sln
 ### Daemon CLI Commands
 ```bash
 ./scripts/run-daemon.sh              # Run background daemon in foreground
-./scripts/run-daemon.sh --once       # Print one-shot hardware & SMART JSON snapshot
 ./scripts/run-daemon.sh --status     # Query running daemon status over IPC
+./scripts/run-daemon.sh --waybar     # Output live stats formatted for Waybar / Polybar / status bars
+./scripts/run-daemon.sh --export csv # Export historical telemetry to CSV (or JSON)
+./scripts/run-daemon.sh --once       # Print one-shot hardware & SMART JSON snapshot
 ./scripts/run-daemon.sh --stop       # Gracefully flush buffers and stop daemon
 ```
 
