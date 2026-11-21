@@ -27,57 +27,43 @@ Unlike traditional point-in-time S.M.A.R.T. viewers or browser-based server dash
 
 ---
 
-## Architecture
-
-```text
-nvme-sentinel/
-├── src/
-│   ├── NvmeSentinel.Core/      # Hardware providers, process I/O trackers, SQLite rollups, NamedPipe/UDS IPC
-│   ├── NvmeSentinel.Daemon/    # Headless user-space background worker & IPC server
-│   └── NvmeSentinel.App/       # Native Avalonia + SukiUI desktop dashboard & System Tray client
-└── tests/
-    └── NvmeSentinel.Tests/     # Storage rollup, lifespan forecasting, and end-to-end IPC tests
-```
-
-### Platform Hardware Backends
-| Platform | NVMe S.M.A.R.T. & Link Info | Live Block I/O & Temps | Per-Process Write Attribution |
-| :--- | :--- | :--- | :--- |
-| **Linux** | `UDisks2` (`NVMe.Controller` D-Bus, unprivileged) + `sysfs` + `smartctl` fallback | `/sys/block/nvme*/stat` + `hwmon` | `/proc/<pid>/io` + kernel/root delta reconciliation |
-| **Windows** | `IOCTL_STORAGE_QUERY_PROPERTY` (NVMe Log Page `02h`) + Storage CIM + `smartctl` fallback | `IOCTL_DISK_PERFORMANCE` | Win32 `GetProcessIoCounters` |
-| **macOS** | `SPNVMeDataType` / `IOKit` + `smartctl` fallback | `iostat` | `libproc` `proc_pid_rusage` (`ri_diskio_byteswritten`) |
-
----
-
 ## Installation & Releases
 
-Pre-built binaries are provided on the [GitHub Releases](https://github.com/khoipm06/nvme-sentinel/releases) page for every release:
+Pre-built native release packages are available on the [GitHub Releases](https://github.com/khoipm06/nvme-sentinel/releases) page:
 
-- **Standalone Packages** (`*-standalone.tar.gz` / `*-standalone.zip`): Include bundled .NET runtime and native libraries. Zero dependencies required.
-- **Framework-Dependent Packages** (`*-fdd.tar.gz` / `*-fdd.zip`): Compact archives (~12–15 MB) for systems with .NET 10 installed.
+- **Standalone Packages** (`*-standalone.tar.gz` / `*-standalone.zip`): Fully self-contained native bundles with embedded .NET runtime. Zero external dependencies required.
+- **Framework-Dependent Packages** (`*-fdd.tar.gz` / `*-fdd.zip`): Lightweight portable archives (~12–15 MB) for machines with .NET 10 SDK/runtime installed.
 
-### Linux (Fedora, Ubuntu, Debian, Arch, SteamOS, Immutable Distros)
-```bash
-# 1. Download and extract release archive
-tar -xzf nvme-sentinel-v1.0.0-linux-x64-standalone.tar.gz
-cd nvme-sentinel-v1.0.0-linux-x64-standalone
+### Cross-Platform Installation
 
-# 2. Run user-space installer (no sudo / root needed)
-./install.sh
-```
-The installer integrates the app into your desktop menu, installs icons, symlinks binaries to `~/.local/bin/`, and enables the `systemd --user` background monitoring daemon. To uninstall anytime, run `~/.local/share/nvme-sentinel/uninstall.sh`.
+#### Windows (10 / 11 x64)
+1. Download `nvme-sentinel-v1.3.0-win-x64-standalone.zip` from Releases.
+2. Extract the ZIP archive.
+3. **Portable run**: Double-click `nvme-sentinel.exe` to run immediately without installation.
+4. **Desktop & Start Menu integration (No Admin Required)**:
+   - Double-click `install.cmd` (or right-click `install.ps1` -> *Run with PowerShell*).
+   - Installs binaries into `%LOCALAPPDATA%\NvmeSentinel\`, generates Start Menu / Desktop shortcuts, and sets up tray integration.
+   - To uninstall cleanly anytime, run `uninstall.ps1`.
 
-### Windows (10 / 11 x64)
-1. Download and extract `nvme-sentinel-v1.0.0-win-x64-standalone.zip`.
-2. **Portable run**: Double-click `nvme-sentinel.exe` directly.
-3. **Optional installation**: Double-click `install.cmd` (or right-click `install.ps1` -> *Run with PowerShell*) to install into `%LOCALAPPDATA%\NvmeSentinel\` and create Start Menu and Desktop shortcuts.
+#### macOS (Apple Silicon M1/M2/M3/M4 & Intel x64)
+1. Download `nvme-sentinel-v1.3.0-osx-arm64-standalone.tar.gz` (Apple Silicon) or `nvme-sentinel-v1.3.0-osx-x64-standalone.tar.gz` (Intel).
+2. Extract and run user-space installer:
+   ```bash
+   tar -xzf nvme-sentinel-v1.3.0-osx-arm64-standalone.tar.gz
+   cd nvme-sentinel-v1.3.0-osx-arm64-standalone
+   ./install.sh
+   ```
+3. Installs binaries into `~/Applications/NVMe Sentinel`, registers background monitoring LaunchAgent (`~/Library/LaunchAgents/com.khoipm.nvme-sentinel.plist`), and symlinks to `~/.local/bin/nvme-sentinel`.
 
-### macOS (Apple Silicon & Intel)
-```bash
-tar -xzf nvme-sentinel-v1.0.0-osx-arm64-standalone.tar.gz
-cd nvme-sentinel-v1.0.0-osx-arm64-standalone
-./install.sh
-```
-Installs binaries, creates user LaunchAgent (`~/Library/LaunchAgents/com.khoipm.nvme-sentinel.plist`), and symlinks to `~/.local/bin/nvme-sentinel`.
+#### Linux (Fedora, Silverblue, Ubuntu, Debian, Arch, SteamOS)
+1. Download `nvme-sentinel-v1.3.0-linux-x64-standalone.tar.gz`.
+2. Extract and run non-root user installer:
+   ```bash
+   tar -xzf nvme-sentinel-v1.3.0-linux-x64-standalone.tar.gz
+   cd nvme-sentinel-v1.3.0-linux-x64-standalone
+   ./install.sh
+   ```
+3. Installs binaries to `~/.local/share/nvme-sentinel/`, creates desktop launcher, registers hicolor icons, and enables background `systemd --user` monitoring daemon (`nvme-sentinel.service`). To uninstall, run `~/.local/share/nvme-sentinel/uninstall.sh`.
 
 ---
 
