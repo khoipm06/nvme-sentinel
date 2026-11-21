@@ -116,7 +116,7 @@
                     <StackPanel Grid.Row="3" Spacing="10" Margin="4,12,4,2">
                         <Border Height="1" Background="{DynamicResource HairlineBrush}" />
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Ellipse Width="6" Height="6" Fill="{DynamicResource InkBrush}" Opacity="0.65" VerticalAlignment="Center" />
+                            <Ellipse Width="7" Height="7" Fill="{Binding DaemonIndicatorBrush}" VerticalAlignment="Center" />
                             <TextBlock Text="{Binding ConnectionBadgeText}" FontSize="13" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
                         </StackPanel>
                     </StackPanel>
@@ -143,19 +143,29 @@
                     </Grid>
                 </Border>
 
-                <!-- Quiet Inline Status Notice -->
+                <!-- Auto-dismissing Toast Notification with Countdown Progress Bar -->
                 <Border Grid.Row="1"
                         IsVisible="{Binding HasActionBanner}"
                         Margin="24,14,24,0"
-                        Padding="14,8"
                         CornerRadius="8"
                         Background="{DynamicResource PanelBgBrush}"
                         BorderBrush="{DynamicResource HairlineStrongBrush}"
-                        BorderThickness="1">
-                    <Grid ColumnDefinitions="Auto,*,Auto">
-                        <Ellipse Grid.Column="0" Width="6" Height="6" Fill="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                        <TextBlock Grid.Column="1" Text="{Binding ActionBannerMessage}" FontSize="13" VerticalAlignment="Center" TextWrapping="Wrap" />
-                        <Button Grid.Column="2" Classes="btn-secondary" Height="26" Padding="10,0" Content="Dismiss" Command="{Binding DismissBannerCommand}" Margin="12,0,0,0" />
+                        BorderThickness="1"
+                        ClipToBounds="True">
+                    <Grid RowDefinitions="Auto,Auto">
+                        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="14,10">
+                            <Ellipse Grid.Column="0" Width="7" Height="7" Fill="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBlock Grid.Column="1" Text="{Binding ActionBannerMessage}" FontSize="13" VerticalAlignment="Center" TextWrapping="Wrap" />
+                            <Button Grid.Column="2" Classes="btn-secondary" Height="26" Padding="8,0" Content="✕" ToolTip.Tip="Dismiss notification" Command="{Binding DismissBannerCommand}" Margin="12,0,0,0" />
+                        </Grid>
+                        <ProgressBar Grid.Row="1"
+                                     Height="2"
+                                     Minimum="0"
+                                     Maximum="100"
+                                     Value="{Binding ActionBannerProgress}"
+                                     Foreground="{DynamicResource AccentBrush}"
+                                     Background="Transparent"
+                                     BorderThickness="0" />
                     </Grid>
                 </Border>
 
@@ -172,7 +182,8 @@
                             <Grid ColumnDefinitions="*,1,*,1,*,1,*">
 
                                 <!-- Cell 1: Health -->
-                                <StackPanel Grid.Column="0" Spacing="8" Margin="22,18" ToolTip.Tip="{Binding HealthSummaryLine}">
+                                <StackPanel Grid.Column="0" Spacing="8" Margin="22,18"
+                                            ToolTip.Tip="Calculated from NVMe SMART Percentage Used, Available Spare blocks, and Media Error counters. Score &lt; 100% indicates wear or media anomalies.">
                                     <TextBlock Text="Drive health" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource MutedBrush}" />
                                     <TextBlock Text="{Binding HealthScoreFormatted}" FontSize="30" FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding HealthSummaryLine}" FontSize="13" Foreground="{DynamicResource MutedBrush}" />
@@ -181,7 +192,8 @@
                                 <Border Grid.Column="1" Background="{DynamicResource HairlineBrush}" />
 
                                 <!-- Cell 2: Total Written -->
-                                <StackPanel Grid.Column="2" Spacing="8" Margin="22,18" ToolTip.Tip="{Binding TbwRawBytesTooltip}">
+                                <StackPanel Grid.Column="2" Spacing="8" Margin="22,18"
+                                            ToolTip.Tip="{Binding TbwRawBytesTooltip}">
                                     <TextBlock Text="Total written (TBW)" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource MutedBrush}" />
                                     <TextBlock Text="{Binding CurrentTbwFormatted}" FontSize="30" FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding TbwSublineText}" FontSize="13" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis" />
@@ -190,7 +202,8 @@
                                 <Border Grid.Column="3" Background="{DynamicResource HairlineBrush}" />
 
                                 <!-- Cell 3: Temperature -->
-                                <StackPanel Grid.Column="4" Spacing="8" Margin="22,18">
+                                <StackPanel Grid.Column="4" Spacing="8" Margin="22,18"
+                                            ToolTip.Tip="Composite controller temperature from NVMe Log Page 02h. Modern controllers throttle at 75°C–83°C (TMT1/TMT2) to avoid thermal degradation.">
                                     <TextBlock Text="Temperature" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource MutedBrush}" />
                                     <TextBlock Text="{Binding CurrentTempFormatted}" FontSize="30" FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding ThermalSensorsInlineText}" FontSize="13" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis" />
@@ -199,7 +212,8 @@
                                 <Border Grid.Column="5" Background="{DynamicResource HairlineBrush}" />
 
                                 <!-- Cell 4: Endurance Horizon -->
-                                <StackPanel Grid.Column="6" Spacing="8" Margin="22,18">
+                                <StackPanel Grid.Column="6" Spacing="8" Margin="22,18"
+                                            ToolTip.Tip="Endurance horizon linearly extrapolated from weighted 30-day, 7-day, and lifetime burn rates against factory rated TBW.">
                                     <TextBlock Text="Projected lifespan" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource MutedBrush}" />
                                     <TextBlock Text="{Binding RemainingLifeFormatted}" FontSize="30" FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding EnduranceSublineText}" FontSize="13" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis" />
@@ -241,42 +255,48 @@
                                 <StackPanel Spacing="0">
                                     <TextBlock Text="Hardware &amp; reliability" FontSize="15" FontWeight="Medium" Margin="0,0,0,12" />
 
-                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,9">
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,9"
+                                            ToolTip.Tip="PCIe generation and lane negotiation (e.g., Gen 4 x4). Link width can drop during idle via Active State Power Management (ASPM).">
                                         <Grid ColumnDefinitions="*,Auto">
                                             <TextBlock Grid.Column="0" Text="Controller" Foreground="{DynamicResource MutedBrush}" />
                                             <TextBlock Grid.Column="1" Text="{Binding ControllerSpecText}" FontWeight="Medium" />
                                         </Grid>
                                     </Border>
 
-                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,9">
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,9"
+                                            ToolTip.Tip="Unique factory serial number and active firmware revision. Critical for tracking manufacturer errata and updates.">
                                         <Grid ColumnDefinitions="*,Auto">
                                             <TextBlock Grid.Column="0" Text="Serial &amp; firmware" Foreground="{DynamicResource MutedBrush}" />
                                             <TextBlock Grid.Column="1" Text="{Binding SerialAndFirmwareText}" FontFamily="Monospace" FontSize="12.5" />
                                         </Grid>
                                     </Border>
 
-                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,9">
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,9"
+                                            ToolTip.Tip="Cumulative host data read since manufacturing. Host reads do not consume NAND cell program/erase (P/E) endurance.">
                                         <Grid ColumnDefinitions="*,Auto">
                                             <TextBlock Grid.Column="0" Text="Lifetime data read" Foreground="{DynamicResource MutedBrush}" />
                                             <TextBlock Grid.Column="1" Text="{Binding TotalReadFormatted}" FontFamily="Monospace" FontSize="13" />
                                         </Grid>
                                     </Border>
 
-                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,9">
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,9"
+                                            ToolTip.Tip="Percentage of remaining factory-provisioned spare flash blocks reserved to replace worn or failing blocks. Drops trigger Critical Warning bit 0.">
                                         <Grid ColumnDefinitions="*,Auto">
                                             <TextBlock Grid.Column="0" Text="Available spare" Foreground="{DynamicResource MutedBrush}" />
                                             <TextBlock Grid.Column="1" Text="{Binding AvailableSpareFormatted}" FontFamily="Monospace" FontSize="13" />
                                         </Grid>
                                     </Border>
 
-                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,9">
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,9"
+                                            ToolTip.Tip="Total operational hours powered on. Used to compute lifetime daily average write burn rate.">
                                         <Grid ColumnDefinitions="*,Auto">
                                             <TextBlock Grid.Column="0" Text="Power-on hours" Foreground="{DynamicResource MutedBrush}" />
                                             <TextBlock Grid.Column="1" Text="{Binding PowerOnHoursFormatted}" FontFamily="Monospace" FontSize="13" />
                                         </Grid>
                                     </Border>
 
-                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,9">
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,9"
+                                            ToolTip.Tip="Power cycles count clean shutdowns/reboots. Unsafe stops indicate abrupt power loss without volatile cache flush.">
                                         <Grid ColumnDefinitions="*,Auto">
                                             <TextBlock Grid.Column="0" Text="Power cycles / Unsafe stops" Foreground="{DynamicResource MutedBrush}" />
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
@@ -287,7 +307,8 @@
                                         </Grid>
                                     </Border>
 
-                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,9,0,0">
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,9,0,0"
+                                            ToolTip.Tip="Unrecoverable data integrity errors where controller ECC (LDPC) failed. Non-zero values require immediate backup.">
                                         <Grid ColumnDefinitions="*,Auto">
                                             <TextBlock Grid.Column="0" Text="Media integrity errors" Foreground="{DynamicResource MutedBrush}" />
                                             <TextBlock Grid.Column="1" Text="{Binding MediaErrorsFormatted}" FontFamily="Monospace" FontSize="13" FontWeight="SemiBold" />
@@ -632,192 +653,242 @@
                               Padding="24,20,24,24"
                               HorizontalScrollBarVisibility="Disabled"
                               VerticalScrollBarVisibility="Auto">
-                    <Grid ColumnDefinitions="1.08*,20,1*">
+                    <StackPanel Spacing="20">
 
-                        <!-- Left Column: Clean Hairline Preference Sheet -->
-                        <Border Grid.Column="0" Classes="panel" Padding="22,18">
-                            <StackPanel Spacing="0">
-                                <TextBlock Text="Preferences" FontSize="15.5" FontWeight="SemiBold" Margin="0,0,0,14" />
+                        <Grid ColumnDefinitions="1.08*,20,1*">
 
-                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0">
-                                            <TextBlock Text="Start daemon at login" FontWeight="Medium" />
-                                            <TextBlock Text="Registers user service (systemd --user, LaunchAgent, or Windows Run)." FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
-                                        </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding EditStartAtLogin}" VerticalAlignment="Center" />
-                                    </Grid>
+                            <!-- Left Column: Preferences -->
+                            <Border Grid.Column="0" Classes="panel" Padding="22,18">
+                                <StackPanel Spacing="0">
+                                    <TextBlock Text="Preferences" FontSize="15.5" FontWeight="SemiBold" Margin="0,0,0,14" />
+
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0">
+                                                <TextBlock Text="Start daemon at login" FontWeight="Medium" />
+                                                <TextBlock Text="Registers user service (systemd --user, LaunchAgent, or Windows Run)." FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding EditStartAtLogin}" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0">
+                                                <TextBlock Text="Keep icon in system tray on close" FontWeight="Medium" />
+                                                <TextBlock Text="Closing the window hides the UI while keeping live tray status." FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding EditCloseToTray}" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0">
+                                                <TextBlock Text="Use Binary IEC units (TiB, GiB)" FontWeight="Medium" />
+                                                <TextBlock Text="Off = Decimal SI (1000^n: TB, GB); On = Binary IEC (1024^n: TiB, GiB)." FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding EditUseBinaryUnits}" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0">
+                                                <TextBlock Text="Desktop alert notifications" FontWeight="Medium" />
+                                                <TextBlock Text="Notify on abnormal write spikes, thermal limits, or media errors." FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <ToggleSwitch Grid.Column="1" IsChecked="{Binding EditEnableNotifications}" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
+                                        <Grid ColumnDefinitions="*,125">
+                                            <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Text="SQLite flush interval (minutes)" FontWeight="Medium" />
+                                                <TextBlock Text="Batches 5-min RAM buckets to minimize SSD wear." FontSize="13" Foreground="{DynamicResource MutedBrush}" />
+                                            </StackPanel>
+                                            <NumericUpDown Grid.Column="1" Minimum="1" Maximum="120" Increment="1" Value="{Binding EditFlushMinutes}" FormatString="0" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
+                                        <Grid ColumnDefinitions="*,125">
+                                            <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Text="Write spike alert (GB / 5 min)" FontWeight="Medium" />
+                                                <TextBlock Text="Snapshots top writers immediately when exceeded." FontSize="13" Foreground="{DynamicResource MutedBrush}" />
+                                            </StackPanel>
+                                            <NumericUpDown Grid.Column="1" Minimum="0.5" Maximum="500" Increment="0.5" Value="{Binding EditSpikeThresholdGb}" FormatString="0.0" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
+                                        <Grid ColumnDefinitions="*,110,8,110">
+                                            <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,12,0" VerticalAlignment="Center">
+                                                <TextBlock Text="Thermal limits (°C)" FontWeight="Medium" />
+                                                <TextBlock Text="Warning / Critical composite temperature." FontSize="13" Foreground="{DynamicResource MutedBrush}" />
+                                            </StackPanel>
+                                            <NumericUpDown Grid.Column="1" Minimum="45" Maximum="105" Increment="1" Value="{Binding EditWarningTempC}" FormatString="0" VerticalAlignment="Center" />
+                                            <NumericUpDown Grid.Column="3" Minimum="55" Maximum="115" Increment="1" Value="{Binding EditCriticalTempC}" FormatString="0" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,1" Padding="0,12">
+                                        <Grid ColumnDefinitions="*,125">
+                                            <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Text="Rated endurance override (TB)" FontWeight="Medium" />
+                                                <TextBlock Text="Leave empty to use model preset." FontSize="13" Foreground="{DynamicResource MutedBrush}" />
+                                            </StackPanel>
+                                            <TextBox Grid.Column="1" PlaceholderText="600" Text="{Binding EditCustomRatedTbwTb}" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                                        <Button Classes="btn-primary" Content="Save preferences" Command="{Binding SaveSettingsCommand}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Right Column: Daemon Runtime + Alert History -->
+                            <StackPanel Grid.Column="2" Spacing="20">
+
+                                <Border Classes="panel" Padding="22,18">
+                                    <StackPanel Spacing="0">
+                                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                                            <TextBlock Grid.Column="0" Text="Daemon process" FontSize="15.5" FontWeight="SemiBold" />
+                                            <TextBlock Grid.Column="1" Text="{Binding DaemonMemoryFormatted, StringFormat='{}{0} RSS'}" FontFamily="Monospace" FontSize="13" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
+                                        </Grid>
+
+                                        <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,8">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0" Text="App version" Foreground="{DynamicResource MutedBrush}" />
+                                                <TextBlock Grid.Column="1" Text="{Binding AppVersionText}" FontFamily="Monospace" FontSize="13" />
+                                            </Grid>
+                                        </Border>
+
+                                        <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,8">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0" Text="Process &amp; uptime" Foreground="{DynamicResource MutedBrush}" />
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="{Binding DaemonPidText}" FontFamily="Monospace" FontSize="13" />
+                                                    <TextBlock Text="·" Foreground="{DynamicResource MutedBrush}" />
+                                                    <TextBlock Text="{Binding DaemonUptimeText}" FontFamily="Monospace" FontSize="13" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+
+                                        <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,8">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0" Text="Backend" Foreground="{DynamicResource MutedBrush}" />
+                                                <TextBlock Grid.Column="1" Text="{Binding DaemonBackendText}" FontSize="13" />
+                                            </Grid>
+                                        </Border>
+
+                                        <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,8">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0" Text="SQLite database" Foreground="{DynamicResource MutedBrush}" />
+                                                <TextBlock Grid.Column="1" Text="{Binding DatabaseSizeText}" FontFamily="Monospace" FontSize="13" />
+                                            </Grid>
+                                        </Border>
+
+                                        <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,1" Padding="0,8">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0" Text="Last disk commit" Foreground="{DynamicResource MutedBrush}" />
+                                                <TextBlock Grid.Column="1" Text="{Binding LastFlushSummary}" FontFamily="Monospace" FontSize="13" />
+                                            </Grid>
+                                        </Border>
+
+                                        <WrapPanel Orientation="Horizontal" Margin="0,14,0,0">
+                                            <Button Classes="btn-secondary" Content="Quit UI only" Command="{Binding QuitGuiOnlyCommand}" Margin="0,0,8,0" />
+                                            <Button Classes="btn-secondary" Content="Stop daemon &amp; exit" Command="{Binding StopDaemonAndQuitCommand}" />
+                                        </WrapPanel>
+                                    </StackPanel>
                                 </Border>
 
-                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0">
-                                            <TextBlock Text="Keep icon in system tray on close" FontWeight="Medium" />
-                                            <TextBlock Text="Closing the window hides the UI while keeping live tray status." FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
-                                        </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding EditCloseToTray}" VerticalAlignment="Center" />
-                                    </Grid>
+                                <Border Classes="panel" Padding="22,18">
+                                    <StackPanel Spacing="12">
+                                        <Grid ColumnDefinitions="*,Auto,Auto">
+                                            <TextBlock Grid.Column="0" Text="Recent alerts" FontSize="15.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            <Button Grid.Column="1" Classes="btn-secondary" Height="28" Content="Mark all read" Command="{Binding AcknowledgeAlertsCommand}" Margin="0,0,8,0" />
+                                            <Button Grid.Column="2" Classes="btn-secondary" Height="28" Content="Clear all" Command="{Binding ClearAlertsCommand}" />
+                                        </Grid>
+
+                                        <TextBlock IsVisible="{Binding HasNoAlerts}"
+                                                   Text="No thermal, wear, or write-spike alerts recorded."
+                                                   FontSize="13.5"
+                                                   Foreground="{DynamicResource MutedBrush}"
+                                                   Margin="0,8" />
+
+                                        <ItemsControl ItemsSource="{Binding AlertItems}" IsVisible="{Binding HasAlerts}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:AlertRow">
+                                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,4">
+                                                        <StackPanel Spacing="4">
+                                                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                                                <Ellipse Grid.Column="0" Width="7" Height="7" Fill="{Binding SeverityBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                                <TextBlock Grid.Column="1" Text="{Binding Title}" FontWeight="Medium" VerticalAlignment="Center" />
+                                                                <TextBlock Grid.Column="2" Text="{Binding TimestampText}" FontFamily="Monospace" FontSize="12" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
+                                                            </Grid>
+                                                            <TextBlock Text="{Binding Message}" FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="15,0,0,0" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
                                 </Border>
 
-                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0">
-                                            <TextBlock Text="Use Binary IEC units (TiB, GiB)" FontWeight="Medium" />
-                                            <TextBlock Text="Off = Decimal SI (1000^n: TB, GB); On = Binary IEC (1024^n: TiB, GiB)." FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
-                                        </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding EditUseBinaryUnits}" VerticalAlignment="Center" />
-                                    </Grid>
+                            </StackPanel>
+
+                        </Grid>
+
+                        <!-- Row 2: Full-Width Storage Architecture & Database Transparency Card -->
+                        <Border Classes="panel" Padding="22,18">
+                            <StackPanel Spacing="14">
+                                <Grid ColumnDefinitions="*,Auto,Auto">
+                                    <TextBlock Grid.Column="0" Text="Storage architecture &amp; database" FontSize="15.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Classes="btn-secondary" Height="28" Content="Copy path" Command="{Binding CopyDatabasePathCommand}" Margin="0,0,8,0" />
+                                    <Button Grid.Column="2" Classes="btn-secondary" Height="28" Content="Open directory" Command="{Binding OpenDatabaseFolderCommand}" />
+                                </Grid>
+
+                                <TextBlock Text="Telemetry is stored locally in an embedded SQLite 3 database operating in WAL (Write-Ahead Logging) mode. Zero telemetry is transmitted over the network."
+                                           FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
+
+                                <Border Background="{DynamicResource SubtleFillBrush}" CornerRadius="6" Padding="14,10">
+                                    <StackPanel Spacing="6">
+                                        <Grid ColumnDefinitions="150,*">
+                                            <TextBlock Grid.Column="0" Text="Database path:" FontSize="12.5" Foreground="{DynamicResource MutedBrush}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding DatabasePathText}" FontFamily="Monospace" FontSize="12" TextWrapping="Wrap" />
+                                        </Grid>
+                                        <Grid ColumnDefinitions="150,*">
+                                            <TextBlock Grid.Column="0" Text="IPC Domain Socket:" FontSize="12.5" Foreground="{DynamicResource MutedBrush}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding IpcPipeText}" FontFamily="Monospace" FontSize="12" />
+                                        </Grid>
+                                        <Grid ColumnDefinitions="150,*">
+                                            <TextBlock Grid.Column="0" Text="Multi-tier tables:" FontSize="12.5" Foreground="{DynamicResource MutedBrush}" />
+                                            <TextBlock Grid.Column="1" Text="smart_samples_raw (7d) · smart_samples_hourly (1y) · smart_samples_daily · process_io · alerts · settings" FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
+                                        </Grid>
+                                    </StackPanel>
                                 </Border>
 
-                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
-                                    <Grid ColumnDefinitions="*,Auto">
-                                        <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0">
-                                            <TextBlock Text="Desktop alert notifications" FontWeight="Medium" />
-                                            <TextBlock Text="Notify on abnormal write spikes, thermal limits, or media errors." FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
+                                <!-- User Terminal Inspection & Editing Guide -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Terminal Inspection &amp; Editing Guide (sqlite3):" FontSize="13" FontWeight="Medium" />
+                                    <Border Background="{DynamicResource SidebarBgBrush}" BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="1" CornerRadius="6" Padding="14,12">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="# 1. Inspect registered drive hardware inventory:" FontSize="11.5" Foreground="{DynamicResource MutedBrush}" FontFamily="Monospace" />
+                                            <TextBlock Text="sqlite3 ~/.local/share/nvme-sentinel/telemetry.db &quot;SELECT device_id, model, firmware, capacity_bytes / 1e9 || ' GB' FROM devices;&quot;" FontSize="11.5" FontFamily="Monospace" />
+                                            <TextBlock Text="# 2. Query recent 5-minute written deltas &amp; temperatures:" FontSize="11.5" Foreground="{DynamicResource MutedBrush}" FontFamily="Monospace" Margin="0,6,0,0" />
+                                            <TextBlock Text="sqlite3 ~/.local/share/nvme-sentinel/telemetry.db &quot;SELECT datetime(bucket_start_ts, 'unixepoch'), delta_bytes_written / 1e9 || ' GB', avg_temp_c || ' °C' FROM smart_samples_raw ORDER BY bucket_start_ts DESC LIMIT 5;&quot;" FontSize="11.5" FontFamily="Monospace" />
+                                            <TextBlock Text="# 3. Manually checkpoint WAL &amp; compact database:" FontSize="11.5" Foreground="{DynamicResource MutedBrush}" FontFamily="Monospace" Margin="0,6,0,0" />
+                                            <TextBlock Text="sqlite3 ~/.local/share/nvme-sentinel/telemetry.db &quot;PRAGMA wal_checkpoint(TRUNCATE); VACUUM;&quot;" FontSize="11.5" FontFamily="Monospace" />
                                         </StackPanel>
-                                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding EditEnableNotifications}" VerticalAlignment="Center" />
-                                    </Grid>
-                                </Border>
-
-                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
-                                    <Grid ColumnDefinitions="*,125">
-                                        <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0" VerticalAlignment="Center">
-                                            <TextBlock Text="SQLite flush interval (minutes)" FontWeight="Medium" />
-                                            <TextBlock Text="Batches 5-min RAM buckets to minimize SSD wear." FontSize="13" Foreground="{DynamicResource MutedBrush}" />
-                                        </StackPanel>
-                                        <NumericUpDown Grid.Column="1" Minimum="1" Maximum="120" Increment="1" Value="{Binding EditFlushMinutes}" FormatString="0" VerticalAlignment="Center" />
-                                    </Grid>
-                                </Border>
-
-                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
-                                    <Grid ColumnDefinitions="*,125">
-                                        <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0" VerticalAlignment="Center">
-                                            <TextBlock Text="Write spike alert (GB / 5 min)" FontWeight="Medium" />
-                                            <TextBlock Text="Snapshots top writers immediately when exceeded." FontSize="13" Foreground="{DynamicResource MutedBrush}" />
-                                        </StackPanel>
-                                        <NumericUpDown Grid.Column="1" Minimum="0.5" Maximum="500" Increment="0.5" Value="{Binding EditSpikeThresholdGb}" FormatString="0.0" VerticalAlignment="Center" />
-                                    </Grid>
-                                </Border>
-
-                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
-                                    <Grid ColumnDefinitions="*,110,8,110">
-                                        <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,12,0" VerticalAlignment="Center">
-                                            <TextBlock Text="Thermal limits (°C)" FontWeight="Medium" />
-                                            <TextBlock Text="Warning / Critical composite temperature." FontSize="13" Foreground="{DynamicResource MutedBrush}" />
-                                        </StackPanel>
-                                        <NumericUpDown Grid.Column="1" Minimum="45" Maximum="105" Increment="1" Value="{Binding EditWarningTempC}" FormatString="0" VerticalAlignment="Center" />
-                                        <NumericUpDown Grid.Column="3" Minimum="55" Maximum="115" Increment="1" Value="{Binding EditCriticalTempC}" FormatString="0" VerticalAlignment="Center" />
-                                    </Grid>
-                                </Border>
-
-                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,1" Padding="0,12">
-                                    <Grid ColumnDefinitions="*,125">
-                                        <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0" VerticalAlignment="Center">
-                                            <TextBlock Text="Rated endurance override (TB)" FontWeight="Medium" />
-                                            <TextBlock Text="Leave empty to use model preset." FontSize="13" Foreground="{DynamicResource MutedBrush}" />
-                                        </StackPanel>
-                                        <TextBox Grid.Column="1" PlaceholderText="600" Text="{Binding EditCustomRatedTbwTb}" VerticalAlignment="Center" />
-                                    </Grid>
-                                </Border>
-
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                                    <Button Classes="btn-primary" Content="Save preferences" Command="{Binding SaveSettingsCommand}" />
+                                    </Border>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
 
-                        <!-- Right Column: Daemon Runtime + Alert History -->
-                        <StackPanel Grid.Column="2" Spacing="20">
-
-                            <Border Classes="panel" Padding="22,18">
-                                <StackPanel Spacing="0">
-                                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,12">
-                                        <TextBlock Grid.Column="0" Text="Daemon process" FontSize="15.5" FontWeight="SemiBold" />
-                                        <TextBlock Grid.Column="1" Text="{Binding DaemonMemoryFormatted, StringFormat='{}{0} RSS'}" FontFamily="Monospace" FontSize="13" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
-                                    </Grid>
-
-                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,8">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <TextBlock Grid.Column="0" Text="App version" Foreground="{DynamicResource MutedBrush}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding AppVersionText}" FontFamily="Monospace" FontSize="13" />
-                                        </Grid>
-                                    </Border>
-
-                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,8">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <TextBlock Grid.Column="0" Text="Process &amp; uptime" Foreground="{DynamicResource MutedBrush}" />
-                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                                                <TextBlock Text="{Binding DaemonPidText}" FontFamily="Monospace" FontSize="13" />
-                                                <TextBlock Text="·" Foreground="{DynamicResource MutedBrush}" />
-                                                <TextBlock Text="{Binding DaemonUptimeText}" FontFamily="Monospace" FontSize="13" />
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-
-                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,8">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <TextBlock Grid.Column="0" Text="Backend" Foreground="{DynamicResource MutedBrush}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding DaemonBackendText}" FontSize="13" />
-                                        </Grid>
-                                    </Border>
-
-                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,8">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <TextBlock Grid.Column="0" Text="SQLite database" Foreground="{DynamicResource MutedBrush}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding DatabaseSizeText}" FontFamily="Monospace" FontSize="13" />
-                                        </Grid>
-                                    </Border>
-
-                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,1" Padding="0,8">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <TextBlock Grid.Column="0" Text="Last disk commit" Foreground="{DynamicResource MutedBrush}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding LastFlushSummary}" FontFamily="Monospace" FontSize="13" />
-                                        </Grid>
-                                    </Border>
-
-                                    <WrapPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                        <Button Classes="btn-secondary" Content="Quit UI only" Command="{Binding QuitGuiOnlyCommand}" Margin="0,0,8,0" />
-                                        <Button Classes="btn-secondary" Content="Stop daemon &amp; exit" Command="{Binding StopDaemonAndQuitCommand}" />
-                                    </WrapPanel>
-                                </StackPanel>
-                            </Border>
-
-                            <Border Classes="panel" Padding="22,18">
-                                <StackPanel Spacing="12">
-                                    <Grid ColumnDefinitions="*,Auto,Auto">
-                                        <TextBlock Grid.Column="0" Text="Recent alerts" FontSize="15.5" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <Button Grid.Column="1" Classes="btn-secondary" Height="28" Content="Mark all read" Command="{Binding AcknowledgeAlertsCommand}" Margin="0,0,8,0" />
-                                        <Button Grid.Column="2" Classes="btn-secondary" Height="28" Content="Clear all" Command="{Binding ClearAlertsCommand}" />
-                                    </Grid>
-
-                                    <TextBlock IsVisible="{Binding HasNoAlerts}"
-                                               Text="No thermal, wear, or write-spike alerts recorded."
-                                               FontSize="13.5"
-                                               Foreground="{DynamicResource MutedBrush}"
-                                               Margin="0,8" />
-
-                                    <ItemsControl ItemsSource="{Binding AlertItems}" IsVisible="{Binding HasAlerts}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate x:DataType="vm:AlertRow">
-                                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,4">
-                                                    <StackPanel Spacing="4">
-                                                        <Grid ColumnDefinitions="Auto,*,Auto">
-                                                            <Ellipse Grid.Column="0" Width="7" Height="7" Fill="{Binding SeverityBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                                            <TextBlock Grid.Column="1" Text="{Binding Title}" FontWeight="Medium" VerticalAlignment="Center" />
-                                                            <TextBlock Grid.Column="2" Text="{Binding TimestampText}" FontFamily="Monospace" FontSize="12" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
-                                                        </Grid>
-                                                        <TextBlock Text="{Binding Message}" FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" Margin="15,0,0,0" />
-                                                    </StackPanel>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
-                            </Border>
-
-                        </StackPanel>
-
-                    </Grid>
+                    </StackPanel>
                 </ScrollViewer>
 
             </Grid>

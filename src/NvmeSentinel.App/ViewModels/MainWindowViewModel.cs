@@ -1,5 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
+using Avalonia.Input.Platform;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -68,10 +71,24 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _hasUnreadAlerts;
 
     [ObservableProperty] private NvmeDeviceInfo? _selectedDevice;
-    [ObservableProperty] private bool _isDaemonConnected;
+
+    private static readonly IBrush s_activeGreenBrush = new SolidColorBrush(Color.Parse("#10B981"));
+    private static readonly IBrush s_inactiveRedBrush = new SolidColorBrush(Color.Parse("#EF4444"));
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DaemonIndicatorBrush))]
+    private bool _isDaemonConnected;
+
+    public IBrush DaemonIndicatorBrush => IsDaemonConnected ? s_activeGreenBrush : s_inactiveRedBrush;
+
     [ObservableProperty] private string _connectionBadgeText = "Connecting";
     [ObservableProperty] private string _actionBannerMessage = string.Empty;
     [ObservableProperty] private bool _hasActionBanner;
+    [ObservableProperty] private double _actionBannerProgress = 100.0;
+
+    private DispatcherTimer? _bannerTimer;
+    private DateTimeOffset _bannerStartTime;
+    private const double BannerDurationSeconds = 5.0;
 
     // Overview KPIs & Hardware Sheet
     [ObservableProperty] private double _healthScore = 100.0;
@@ -171,7 +188,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string _daemonBackendText = "—";
     [ObservableProperty] private string _daemonMemoryFormatted = "—";
     [ObservableProperty] private string _databaseSizeText = "—";
-    [ObservableProperty] private string _databasePathText = "—";
+    [ObservableProperty] private string _databasePathText = AppPaths.GetDatabasePath();
+    public string DatabaseDirectoryText => AppPaths.GetDataDirectory();
+    public string IpcPipeText => AppPaths.GetIpcPipeName();
     [ObservableProperty] private string _lastFlushSummary = "—";
     [ObservableProperty] private string _appVersionText = $"v{typeof(MainWindowViewModel).Assembly.GetName().Version?.ToString(3) ?? "1.0.0"}";
 
@@ -258,7 +277,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void DismissBanner()
     {
+        _bannerTimer?.Stop();
         HasActionBanner = false;
+        ActionBannerProgress = 0.0;
     }
 
     [RelayCommand]
@@ -472,6 +493,50 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         RequestStopDaemonAndQuitAll?.Invoke();
+    }
+
+    [RelayCommand]
+    private async Task CopyDatabasePathAsync()
+    {
+        try
+        {
+            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop &&
+                desktop.MainWindow?.Clipboard is { } clipboard)
+            {
+                await clipboard.SetTextAsync(DatabasePathText);
+            }
+            ShowBanner($"Database path copied: {DatabasePathText}");
+        }
+        catch (Exception ex)
+        {
+            ShowBanner($"Could not copy: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private void OpenDatabaseFolder()
+    {
+        try
+        {
+            var dir = AppPaths.GetDataDirectory();
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Process.Start(new ProcessStartInfo("explorer.exe", dir) { UseShellExecute = true });
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                Process.Start("open", dir);
+            }
+            else
+            {
+                Process.Start("xdg-open", dir);
+            }
+            ShowBanner($"Opened directory: {dir}");
+        }
+        catch (Exception ex)
+        {
+            ShowBanner($"Could not open directory: {ex.Message}");
+        }
     }
 
     private async Task RefreshDashboardAsync(bool loadSettingsIntoEditor)
@@ -896,6 +961,31 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             ActionBannerMessage = message;
             HasActionBanner = !string.IsNullOrWhiteSpace(message);
+            ActionBannerProgress = 100.0;
+
+            _bannerTimer?.Stop();
+            if (HasActionBanner)
+            {
+                _bannerStartTime = DateTimeOffset.UtcNow;
+                _bannerTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(50)
+                };
+                _bannerTimer.Tick += (_, _) =>
+                {
+                    var elapsed = (DateTimeOffset.UtcNow - _bannerStartTime).TotalSeconds;
+                    var remaining = Math.Max(0.0, 1.0 - (elapsed / BannerDurationSeconds));
+                    ActionBannerProgress = remaining * 100.0;
+
+                    if (remaining <= 0.0)
+                    {
+                        _bannerTimer?.Stop();
+                        HasActionBanner = false;
+                        ActionBannerProgress = 0.0;
+                    }
+                };
+                _bannerTimer.Start();
+            }
         });
     }
 
