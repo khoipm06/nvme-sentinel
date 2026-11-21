@@ -73,17 +73,42 @@
             <Setter Property="FontSize" Value="13.5" />
             <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+            <Setter Property="RenderTransform" Value="none" />
+            <Setter Property="Transitions">
+                <Transitions />
+            </Setter>
+        </Style>
+
+        <Style Selector="Button.nav-row /template/ ContentPresenter">
+            <Setter Property="Transitions">
+                <Transitions />
+            </Setter>
+            <Setter Property="RenderTransform" Value="none" />
         </Style>
 
         <Style Selector="Button.nav-row:pointerover">
             <Setter Property="Background" Value="{DynamicResource SubtleFillBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+            <Setter Property="RenderTransform" Value="none" />
+        </Style>
+
+        <Style Selector="Button.nav-row:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SubtleFillBrush}" />
+            <Setter Property="TextBlock.Foreground" Value="{DynamicResource InkBrush}" />
+            <Setter Property="RenderTransform" Value="none" />
         </Style>
 
         <Style Selector="Button.nav-row.active">
             <Setter Property="Background" Value="{DynamicResource SubtleFillBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
             <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="RenderTransform" Value="none" />
+        </Style>
+
+        <Style Selector="Button.nav-row.active /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SubtleFillBrush}" />
+            <Setter Property="TextBlock.Foreground" Value="{DynamicResource InkBrush}" />
+            <Setter Property="RenderTransform" Value="none" />
         </Style>
 
         <!-- Primary button: Solid Ink (as on figma.com & x.ai) -->
