@@ -44,11 +44,24 @@ public static class LifespanAnalyzer
 
         double? estDays = null;
         DateTimeOffset? exhaustionDate = null;
-        if (effectiveRate > 1_000_000 && remaining > 0) // > 1 MB/day
+        const double OneGigabyte = 1_000_000_000.0;
+        const double MaxPracticalHorizonDays = 3652.5; // Cap practical silicon exhaustion projection at 10.0 years
+
+        // If daily burn rate is negligible (< 1 GB/day), endurance wear is not the limiting failure factor;
+        // physical component aging, capacitor degradation, and dielectric charge leakage (JEDEC JESD218) dominate.
+        if (effectiveRate >= OneGigabyte && remaining > 0)
         {
-            double days = Math.Min(36500.0, remaining / effectiveRate); // Cap display horizon at 100 years
-            estDays = Math.Round(days, 1);
-            exhaustionDate = now.AddDays(days);
+            double days = remaining / effectiveRate;
+            if (days <= MaxPracticalHorizonDays)
+            {
+                estDays = Math.Round(days, 1);
+                exhaustionDate = now.AddDays(days);
+            }
+            else
+            {
+                // Leave exhaustionDate null so the presentation layer shows "> 10 yrs" without a misleading century date
+                estDays = MaxPracticalHorizonDays;
+            }
         }
         else if (remaining == 0 && ratedBytes > 0)
         {

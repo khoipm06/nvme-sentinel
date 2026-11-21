@@ -44,12 +44,23 @@ public static class RatedTbwEstimator
         // Extrapolate from firmware wear curve if meaningful wear has accumulated
         if (smart is { PercentUsed: >= 5 and <= 150, TotalBytesWritten: > 5 * OneTerabyte })
         {
-            var extrapolatedBytes = (long)Math.Round(smart.TotalBytesWritten / (smart.PercentUsed / 100.0));
-            // Round to nearest 50 TB
-            var tbRounded = Math.Round(extrapolatedBytes / (50.0 * OneTerabyte)) * 50.0;
-            if (tbRounded >= 100 && tbRounded <= 10_000)
+            double wearRatio = smart.PercentUsed / 100.0;
+            if (wearRatio > 0.0)
             {
-                return ((long)(tbRounded * OneTerabyte), "SMART Wear Extrapolation");
+                var extrapolatedBytes = (long)Math.Round(smart.TotalBytesWritten / wearRatio);
+                // Silicon plausibility envelope: 150 TBW/TB (QLC floor) to 3,500 TBW/TB (Enterprise SLC/eMLC ceiling)
+                double minPlausible = capacityTb * 150.0 * OneTerabyte;
+                double maxPlausible = capacityTb * 3500.0 * OneTerabyte;
+
+                if (extrapolatedBytes >= minPlausible && extrapolatedBytes <= maxPlausible)
+                {
+                    // Round to nearest 50 TB manufacturing increment
+                    var tbRounded = Math.Round(extrapolatedBytes / (50.0 * OneTerabyte)) * 50.0;
+                    if (tbRounded >= 50 && tbRounded <= 30_000)
+                    {
+                        return ((long)(tbRounded * OneTerabyte), "SMART Wear Extrapolation");
+                    }
+                }
             }
         }
 
@@ -64,9 +75,16 @@ public static class RatedTbwEstimator
         }
 
         double rawTb = capacityBytes / (double)OneTerabyte;
-        double[] standardSizes = [0.128, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0];
+        // Standard consumer bins, enterprise read-intensive (0.96-15.36TB), and mixed-use (0.8-12.8TB)
+        double[] standardSizes =
+        [
+            0.128, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0,
+            0.96, 1.92, 3.84, 7.68, 15.36, 30.72,
+            0.40, 0.80, 1.60, 3.20, 6.40, 12.80
+        ];
         var closest = standardSizes.MinBy(s => Math.Abs(s - rawTb));
-        return Math.Abs(closest - rawTb) / closest < 0.18 ? closest : Math.Round(rawTb, 2);
+        // Strict 3.5% snapping margin prevents false snapping between 1.92TB enterprise and 2.0TB consumer
+        return Math.Abs(closest - rawTb) / closest <= 0.035 ? closest : Math.Round(rawTb, 2);
     }
 
     private static bool ContainsAny(string text, params string[] patterns) =>

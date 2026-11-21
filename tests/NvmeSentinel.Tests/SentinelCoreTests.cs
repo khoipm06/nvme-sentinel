@@ -201,4 +201,81 @@ public sealed class SentinelCoreTests
             Directory.Delete(tempDir, recursive: true);
         }
     }
+
+    [Fact]
+    public void RatedTbwEstimator_CorrectlyBinsEnterpriseAndProtectsPlausibility()
+    {
+        var settings = new DaemonSettings();
+
+        // 1. Enterprise Read-Intensive: 1.92 TB should not be snapped to 2.0 TB
+        var enterpriseDev = new NvmeDeviceInfo
+        {
+            DeviceId = "ENT_1920",
+            Model = "Micron_7450_MTFDKCC1T9TFR",
+            CapacityBytes = 1_920_383_410_176L // ~1.92 TB
+        };
+        var (ratedBytes192, source192) = RatedTbwEstimator.Estimate(enterpriseDev, null, settings);
+        Assert.Equal(1_920_000_000_000L * 600 / 1000 * 1000, ratedBytes192); // Normalized capacity is 1.92 TB
+        Assert.Equal(1_152_000_000_000_000L, ratedBytes192); // 1.92 * 600 TBW = 1,152 TBW
+
+        // 2. Extrapolation plausibility envelope: Reject wild extrapolation from counterfeit or corrupt SMART
+        var normalDev = new NvmeDeviceInfo
+        {
+            DeviceId = "DEV_1TB",
+            Model = "Generic NVMe SSD",
+            CapacityBytes = 1_000_000_000_000L
+        };
+        // If counterfeit firmware reports 1% wear despite 100 TB written (claiming 10,000 TBW on 1TB drive)
+        var corruptSmart = new SmartSnapshot
+        {
+            DeviceId = "DEV_1TB",
+            PercentUsed = 5,
+            TotalBytesWritten = 250_000_000_000_000L // 250 TB written at 5% implies 5,000 TBW/TB (exceeds 3,500 ceiling)
+        };
+        var (ratedBytesCorrupt, sourceCorrupt) = RatedTbwEstimator.Estimate(normalDev, corruptSmart, settings);
+        Assert.Equal("Standard TLC Estimate (600 TBW/TB)", sourceCorrupt);
+    }
+
+    [Fact]
+    public void LifespanAnalyzer_CapsRealisticHorizonUnderNegligibleBurnRate()
+    {
+        var dev = new NvmeDeviceInfo
+        {
+            DeviceId = "IDLE_DEV",
+            Model = "Samsung 980 PRO 1TB",
+            CapacityBytes = 1_000_000_000_000L
+        };
+        var smart = new SmartSnapshot
+        {
+            DeviceId = "IDLE_DEV",
+            PercentUsed = 1,
+            TotalBytesWritten = 5_000_000_000_000L, // 5 TB
+            PowerOnHours = 8760, // 1 year
+            AvailableSpare = 100
+        };
+        var settings = new DaemonSettings();
+        var tempDir = Path.Combine(Path.GetTempPath(), $"nvme-sentinel-life-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            using var store = new TimeSeriesStore(Path.Combine(tempDir, "life.db"));
+            var forecast = LifespanAnalyzer.Compute(dev, smart, settings, store);
+
+            // With almost zero time-series writes and small lifetime rate, horizon should be capped at 10 years
+            if (forecast.EffectiveBurnRateBytesPerDay >= 1_000_000_000.0)
+            {
+                Assert.True(forecast.EstimatedDaysRemaining <= 3652.5);
+            }
+            else
+            {
+                // Negligible daily burn rate leaves exhaustion date null (displayed as "> 10 yrs")
+                Assert.Null(forecast.EstimatedExhaustionDateUtc);
+            }
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
 }

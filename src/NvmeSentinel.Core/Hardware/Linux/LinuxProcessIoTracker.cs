@@ -155,16 +155,15 @@ public sealed class LinuxProcessIoTracker : IProcessIoTracker
     {
         readBytes = 0;
         writeBytes = 0;
+        long cancelledBytes = 0;
         try
         {
-            using var fs = new FileStream(ioPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 256, FileOptions.SequentialScan);
+            using var fs = new FileStream(ioPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 512, FileOptions.SequentialScan);
             t_ioBuffer ??= new byte[512];
             int read = fs.Read(t_ioBuffer, 0, t_ioBuffer.Length);
             if (read <= 0) return false;
 
             var span = t_ioBuffer.AsSpan(0, read);
-            int found = 0;
-
             int idx = 0;
             while (idx < span.Length)
             {
@@ -177,7 +176,6 @@ public sealed class LinuxProcessIoTracker : IProcessIoTracker
                     if (TryParseAsciiLong(line[11..].Trim((byte)' '), out var r))
                     {
                         readBytes = r;
-                        found++;
                     }
                 }
                 else if (line.StartsWith("write_bytes:"u8))
@@ -185,14 +183,20 @@ public sealed class LinuxProcessIoTracker : IProcessIoTracker
                     if (TryParseAsciiLong(line[12..].Trim((byte)' '), out var w))
                     {
                         writeBytes = w;
-                        found++;
                     }
                 }
-
-                if (found == 2) break;
+                else if (line.StartsWith("cancelled_write_bytes:"u8))
+                {
+                    if (TryParseAsciiLong(line[22..].Trim((byte)' '), out var c))
+                    {
+                        cancelledBytes = c;
+                    }
+                }
             }
 
-            return found > 0;
+            // Deduct cancelled (truncated before page cache writeback) bytes to get net storage impact
+            writeBytes = Math.Max(0, writeBytes - cancelledBytes);
+            return true;
         }
         catch
         {
