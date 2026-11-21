@@ -713,13 +713,47 @@
                                     </Border>
 
                                     <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
+                                        <Grid ColumnDefinitions="*,250">
+                                            <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Text="Workload Alert Profile" FontWeight="Medium" />
+                                                <TextBlock Text="{Binding EffectiveSpikeThresholdDisplay}" FontSize="12.5" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <ComboBox Grid.Column="1" SelectedIndex="{Binding EditAlertProfileIndex}" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                                                <ComboBoxItem Content="Office / General (5–10 GB)" />
+                                                <ComboBoxItem Content="Gaming / Download (30–50 GB)" />
+                                                <ComboBoxItem Content="Creator / Workstation (80–150 GB)" />
+                                                <ComboBoxItem Content="Dynamic TBW (DWPD-based)" />
+                                                <ComboBoxItem Content="Custom Threshold" />
+                                            </ComboBox>
+                                        </Grid>
+                                    </Border>
+
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12" IsVisible="{Binding IsCustomProfile}">
                                         <Grid ColumnDefinitions="*,125">
                                             <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0" VerticalAlignment="Center">
-                                                <TextBlock Text="Write spike alert (GB / 5 min)" FontWeight="Medium" />
-                                                <TextBlock Text="Snapshots top writers immediately when exceeded." FontSize="13" Foreground="{DynamicResource MutedBrush}" />
+                                                <TextBlock Text="Custom write spike limit (GB / 5 min)" FontWeight="Medium" />
+                                                <TextBlock Text="Manual threshold triggering anomalous write tracking." FontSize="13" Foreground="{DynamicResource MutedBrush}" />
                                             </StackPanel>
                                             <NumericUpDown Grid.Column="1" Minimum="0.5" Maximum="500" Increment="0.5" Value="{Binding EditSpikeThresholdGb}" FormatString="0.0" VerticalAlignment="Center" />
                                         </Grid>
+                                    </Border>
+
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
+                                        <Grid ColumnDefinitions="*,125">
+                                            <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0" VerticalAlignment="Center">
+                                                <TextBlock Text="Sustained interval threshold (cycles)" FontWeight="Medium" />
+                                                <TextBlock Text="Alerts after 2–3 consecutive 5-min intervals above threshold (filters 1-time file copies). Emergency rates (≥50 GB) alert immediately." FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <NumericUpDown Grid.Column="1" Minimum="1" Maximum="5" Increment="1" Value="{Binding EditSustainedCycles}" FormatString="0" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+
+                                    <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="Process Whitelist (False Alarm Suppression)" FontWeight="Medium" />
+                                            <TextBlock Text="Known write-heavy programs (Steam, Epic, rsync, tar, browser caches). Bursts from these are logged silently without intrusive alarms." FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
+                                            <TextBox Text="{Binding EditProcessWhitelist}" PlaceholderText="steam, epicgameslauncher, rsync, tar, timeshift, restic, borg, chrome, firefox" Margin="0,4,0,0" />
+                                        </StackPanel>
                                     </Border>
 
                                     <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">

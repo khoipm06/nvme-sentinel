@@ -12,6 +12,7 @@ using NvmeSentinel.App.Controls;
 using NvmeSentinel.App.Services;
 using NvmeSentinel.Core.Ipc;
 using NvmeSentinel.Core.Models;
+using NvmeSentinel.Core.Services;
 using NvmeSentinel.Core.Storage;
 using SukiUI;
 
@@ -23,6 +24,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly CancellationTokenSource _cts = new();
     private readonly List<double> _readRing = Enumerable.Repeat(0.0, 60).ToList();
     private readonly List<double> _writeRing = Enumerable.Repeat(0.0, 60).ToList();
+    private DashboardSnapshot? _cachedDashboard;
 
     private string _activePreset = "24h";
     private DateTimeOffset _presetStartUtc = DateTimeOffset.UtcNow.AddHours(-24);
@@ -195,7 +197,17 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string _appVersionText = $"v{typeof(MainWindowViewModel).Assembly.GetName().Version?.ToString(3) ?? "1.0.0"}";
 
     [ObservableProperty] private int _editFlushMinutes = 10;
-    [ObservableProperty] private double _editSpikeThresholdGb = 5.0;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EffectiveSpikeThresholdDisplay))]
+    [NotifyPropertyChangedFor(nameof(IsCustomProfile))]
+    private int _editAlertProfileIndex = 0; // 0 = Office, 1 = Gaming, 2 = Creator, 3 = Dynamic DWPD, 4 = Custom
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EffectiveSpikeThresholdDisplay))]
+    private double _editSpikeThresholdGb = 8.0;
+
+    [ObservableProperty] private int _editSustainedCycles = 2;
+    [ObservableProperty] private string _editProcessWhitelist = "steam, epicgameslauncher, rsync, tar, timeshift, restic, borg, chrome, firefox";
     [ObservableProperty] private double _editWarningTempC = 75.0;
     [ObservableProperty] private double _editCriticalTempC = 83.0;
     [ObservableProperty] private string _editCustomRatedTbwTb = string.Empty;
@@ -206,6 +218,47 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private bool _editDarkTheme = true;
     [ObservableProperty] private bool _editStartAtLogin;
     [ObservableProperty] private bool _editUseBinaryUnits;
+
+    public bool IsCustomProfile => EditAlertProfileIndex == 4;
+
+    public string EffectiveSpikeThresholdDisplay
+    {
+        get
+        {
+            var profile = (AlertProfile)Math.Clamp(EditAlertProfileIndex, 0, 4);
+            long ratedTbw = 0;
+            if (SelectedDevice is not null && _cachedDashboard?.Forecasts.TryGetValue(SelectedDevice.DeviceId, out var fc) == true)
+            {
+                ratedTbw = fc.RatedTbwBytes;
+            }
+            if (ratedTbw <= 0)
+            {
+                ratedTbw = 600_000_000_000_000L;
+            }
+
+            var dummySettings = new DaemonSettings
+            {
+                AlertProfile = profile,
+                SpikeThresholdGbPer5Min = EditSpikeThresholdGb,
+                OfficeProfileThresholdGb = 8.0,
+                GamingProfileThresholdGb = 35.0,
+                CreatorProfileThresholdGb = 100.0,
+                WarrantyDays = 1825.0,
+                DynamicBurstMultiplier = 12.0
+            };
+
+            double resolved = SpikeThresholdCalculator.ResolveEffectiveThresholdGb(dummySettings, ratedTbw);
+            return profile switch
+            {
+                AlertProfile.Office => $"~{resolved:F1} GB / 5 min (Office/General: browsing, typing, light cache)",
+                AlertProfile.Gaming => $"~{resolved:F1} GB / 5 min (Gaming/Download: Steam, Epic downloads & unpacking)",
+                AlertProfile.Creator => $"~{resolved:F1} GB / 5 min (Creator/Workstation: 4K video exports, CAD, VMs)",
+                AlertProfile.DynamicDwpd => $"~{resolved:F1} GB / 5 min (Dynamic: based on {ratedTbw / 1e12:F0} TBW rating @ 5-yr warranty & 12x burst)",
+                AlertProfile.Custom => $"{resolved:F1} GB / 5 min (Custom user threshold)",
+                _ => $"{resolved:F1} GB / 5 min"
+            };
+        }
+    }
 
     public string ThemeButtonLabel => EditDarkTheme ? "Light grade" : "Dark grade";
     public bool CloseToTrayEnabled => EditCloseToTray;
@@ -440,11 +493,21 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 customMap[SelectedDevice.DeviceId] = customTb;
             }
 
+            var whitelist = EditProcessWhitelist
+                .Split([',', ';', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrEmpty(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
             var newSettings = new DaemonSettings
             {
                 FlushIntervalMinutes = Math.Clamp(EditFlushMinutes, 1, 120),
                 SmartPollIntervalSeconds = 60,
+                AlertProfile = (AlertProfile)Math.Clamp(EditAlertProfileIndex, 0, 4),
                 SpikeThresholdGbPer5Min = Math.Max(0.5, EditSpikeThresholdGb),
+                SustainedSpikeThresholdCycles = Math.Clamp(EditSustainedCycles, 1, 5),
+                ProcessWhitelist = whitelist,
                 WarningTempCelsius = Math.Clamp(EditWarningTempC, 45, 105),
                 CriticalTempCelsius = Math.Clamp(EditCriticalTempC, 55, 115),
                 EnableDesktopNotifications = EditEnableNotifications,
@@ -636,6 +699,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private void ApplyDashboardSnapshot(DashboardSnapshot dash, bool loadSettingsIntoEditor)
     {
+        _cachedDashboard = dash;
         IsDaemonConnected = true;
         ConnectionBadgeText = "Daemon active";
 
@@ -771,7 +835,12 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (loadSettingsIntoEditor)
         {
             EditFlushMinutes = dash.Settings.FlushIntervalMinutes;
+            EditAlertProfileIndex = (int)dash.Settings.AlertProfile;
             EditSpikeThresholdGb = dash.Settings.SpikeThresholdGbPer5Min;
+            EditSustainedCycles = dash.Settings.SustainedSpikeThresholdCycles;
+            EditProcessWhitelist = dash.Settings.ProcessWhitelist.Count > 0
+                ? string.Join(", ", dash.Settings.ProcessWhitelist)
+                : "steam, epicgameslauncher, rsync, tar, timeshift, restic, borg, chrome, firefox";
             EditWarningTempC = dash.Settings.WarningTempCelsius;
             EditCriticalTempC = dash.Settings.CriticalTempCelsius;
             EditEnableNotifications = dash.Settings.EnableDesktopNotifications;
@@ -788,6 +857,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             {
                 EditCustomRatedTbwTb = string.Empty;
             }
+
+            OnPropertyChanged(nameof(EffectiveSpikeThresholdDisplay));
         }
     }
 
