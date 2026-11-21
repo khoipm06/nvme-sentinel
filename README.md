@@ -112,3 +112,20 @@ dotnet test NvmeSentinel.sln
 ./scripts/publish-crossplatform.sh
 ```
 Outputs standalone binaries under `publish/linux-x64`, `publish/win-x64`, and `publish/osx-arm64`.
+
+---
+
+## Technical Reference & Hardware FAQ
+
+For a rigorous, mathematically exact breakdown of NVMe telemetry, estimation models, and hardware behavior:
+- **[Estimation Formulas & Hardware Mechanics FAQ](docs/ESTIMATION_AND_FAQ.md)**:
+  - Exact NVMe Log Page 02h unit mathematics ($1,000 \times 512 = 512,000$ bytes/unit) & Decimal SI vs Binary IEC (9.95% discrepancy).
+  - 27-point capacity lattice with 3.5% snapping margin for enterprise read-intensive (960GB, 1.92TB, 3.84TB, etc.) and mixed-use drives.
+  - Multi-window linear burn-rate regressions ($R_{24h}$, $R_{7d}$, $R_{30d}$, $R_{\text{lifetime}}$) and Tri-State lifespan forecasting engine.
+  - Write Amplification Factor (WAF) surge causes, Dynamic Pseudo-SLC (pSLC) folding mechanics, and the wear-mitigating impact of NVMe Dataset Management Deallocate (`DSM TRIM`).
+  - Thermal mechanics: Fowler-Nordheim tunneling in cold flash ($<20^\circ\text{C}$), Arrhenius electron leakage at elevated temperatures, and NVMe TMT1/TMT2/WCTEMP/CCTEMP throttling.
+  - PCIe link width scaling (ASPM L0s/L1.1/L1.2/APST power saving vs hardware LTSSM equalization failures).
+  - DRAM-less SSDs, Host Memory Buffer (HMB) DMA performance overhead, and IOMMU (Intel VT-d / AMD-Vi / ARM SMMUv3) protection.
+  - Available Spare depletion, Critical Warning bit 0, and irreversible permanent read-only hardware lockouts.
+  - Divergence between `/proc/[pid]/io` (`write_bytes` vs `cancelled_write_bytes`), VFS page cache coalescing, and NVMe controller block transfers.
+
