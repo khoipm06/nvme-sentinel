@@ -216,11 +216,34 @@ public sealed class AlertEvent
     public bool Acknowledged { get; set; }
 }
 
+public enum AlertProfile
+{
+    Office = 0,
+    Gaming = 1,
+    Creator = 2,
+    DynamicDwpd = 3,
+    Custom = 4
+}
+
 public sealed class DaemonSettings
 {
     public int FlushIntervalMinutes { get; set; } = 10;
     public int SmartPollIntervalSeconds { get; set; } = 60;
-    public double SpikeThresholdGbPer5Min { get; set; } = 5.0;
+    public AlertProfile AlertProfile { get; set; } = AlertProfile.Office;
+    public double SpikeThresholdGbPer5Min { get; set; } = 8.0;
+    public double OfficeProfileThresholdGb { get; set; } = 8.0;
+    public double GamingProfileThresholdGb { get; set; } = 35.0;
+    public double CreatorProfileThresholdGb { get; set; } = 100.0;
+    public double WarrantyDays { get; set; } = 1825.0; // 5 years
+    public double DynamicBurstMultiplier { get; set; } = 12.0;
+    public int SustainedSpikeThresholdCycles { get; set; } = 2; // consecutive 5-min intervals
+    public List<string> ProcessWhitelist { get; set; } =
+    [
+        "steam", "steam.exe", "epicgameslauncher", "epicgameslauncher.exe",
+        "defrag.exe", "rsync", "tar", "timeshift", "timeshift-gtk",
+        "restic", "borg", "chrome", "firefox", "brave", "msedge",
+        "qemu-system-x86_64", "vmware-vmx"
+    ];
     public double WarningTempCelsius { get; set; } = 75.0;
     public double CriticalTempCelsius { get; set; } = 83.0;
     public bool EnableDesktopNotifications { get; set; } = true;

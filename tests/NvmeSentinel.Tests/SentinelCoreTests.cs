@@ -278,4 +278,103 @@ public sealed class SentinelCoreTests
             Directory.Delete(tempDir, recursive: true);
         }
     }
+
+    [Fact]
+    public void SpikeThresholdCalculator_CalculatesDynamicThresholdAndResolvesProfiles()
+    {
+        // 600 TBW @ 1825 days with 12x burst multiplier:
+        // Daily: (600 * 1000) / 1825 = 328.767 GB/day
+        // 5-min avg: 328.767 / 288 = 1.14155 GB
+        // Threshold: 1.14155 * 12 = 13.70 GB
+        long tbw1Tb = 600_000_000_000_000L;
+        double dyn1Tb = SpikeThresholdCalculator.CalculateDynamicGbPer5Min(tbw1Tb, 1825.0, 12.0);
+        Assert.InRange(dyn1Tb, 13.5, 14.0);
+
+        // 1200 TBW (2TB High-endurance)
+        long tbw2Tb = 1200_000_000_000_000L;
+        double dyn2Tb = SpikeThresholdCalculator.CalculateDynamicGbPer5Min(tbw2Tb, 1825.0, 12.0);
+        Assert.InRange(dyn2Tb, 27.0, 28.0);
+
+        // Test Profile Resolution
+        var settings = new DaemonSettings
+        {
+            AlertProfile = AlertProfile.Office,
+            OfficeProfileThresholdGb = 8.0,
+            GamingProfileThresholdGb = 35.0,
+            CreatorProfileThresholdGb = 100.0,
+            SpikeThresholdGbPer5Min = 15.0
+        };
+
+        Assert.Equal(8.0, SpikeThresholdCalculator.ResolveEffectiveThresholdGb(settings, tbw1Tb));
+
+        settings.AlertProfile = AlertProfile.Gaming;
+        Assert.Equal(35.0, SpikeThresholdCalculator.ResolveEffectiveThresholdGb(settings, tbw1Tb));
+
+        settings.AlertProfile = AlertProfile.Creator;
+        Assert.Equal(100.0, SpikeThresholdCalculator.ResolveEffectiveThresholdGb(settings, tbw1Tb));
+
+        settings.AlertProfile = AlertProfile.Custom;
+        Assert.Equal(15.0, SpikeThresholdCalculator.ResolveEffectiveThresholdGb(settings, tbw1Tb));
+
+        settings.AlertProfile = AlertProfile.DynamicDwpd;
+        Assert.Equal(dyn1Tb, SpikeThresholdCalculator.ResolveEffectiveThresholdGb(settings, tbw1Tb));
+    }
+
+    [Fact]
+    public void SpikeThresholdCalculator_MatchesWhitelistedProcessesCrossPlatform()
+    {
+        var whitelist = new List<string> { "steam", "epicgameslauncher", "rsync", "tar", "timeshift" };
+
+        Assert.True(SpikeThresholdCalculator.IsProcessWhitelisted("steam", "/usr/bin/steam", whitelist));
+        Assert.True(SpikeThresholdCalculator.IsProcessWhitelisted("steam.exe", @"C:\Program Files (x86)\Steam\steam.exe", whitelist));
+        Assert.True(SpikeThresholdCalculator.IsProcessWhitelisted("EpicGamesLauncher", @"C:\Program Files\Epic Games\Launcher\Portal\Binaries\Win64\EpicGamesLauncher.exe", whitelist));
+        Assert.True(SpikeThresholdCalculator.IsProcessWhitelisted("rsync", "/usr/bin/rsync", whitelist));
+        Assert.True(SpikeThresholdCalculator.IsProcessWhitelisted("tar", "/bin/tar", whitelist));
+
+        // Non-whitelisted processes
+        Assert.False(SpikeThresholdCalculator.IsProcessWhitelisted("cryptominer", "/tmp/cryptominer", whitelist));
+        Assert.False(SpikeThresholdCalculator.IsProcessWhitelisted("ransomware.exe", @"C:\Users\User\Downloads\ransomware.exe", whitelist));
+    }
+
+    [Fact]
+    public void DaemonSettings_RoundTripsThroughSqliteStore()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"nvme-sentinel-settings-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        var dbPath = Path.Combine(tempDir, "settings_test.db");
+
+        try
+        {
+            using var store = new TimeSeriesStore(dbPath);
+            var initial = new DaemonSettings
+            {
+                AlertProfile = AlertProfile.DynamicDwpd,
+                SpikeThresholdGbPer5Min = 25.0,
+                SustainedSpikeThresholdCycles = 3,
+                ProcessWhitelist = ["steam", "timeshift", "defrag"],
+                WarningTempCelsius = 78.0,
+                CriticalTempCelsius = 86.0,
+                CloseToTray = false,
+                UseBinaryUnits = true
+            };
+
+            store.SaveSettings(initial);
+            var loaded = store.LoadSettings();
+
+            Assert.Equal(AlertProfile.DynamicDwpd, loaded.AlertProfile);
+            Assert.Equal(25.0, loaded.SpikeThresholdGbPer5Min);
+            Assert.Equal(3, loaded.SustainedSpikeThresholdCycles);
+            Assert.Equal(3, loaded.ProcessWhitelist.Count);
+            Assert.Contains("steam", loaded.ProcessWhitelist);
+            Assert.Contains("timeshift", loaded.ProcessWhitelist);
+            Assert.Equal(78.0, loaded.WarningTempCelsius);
+            Assert.Equal(86.0, loaded.CriticalTempCelsius);
+            Assert.False(loaded.CloseToTray);
+            Assert.True(loaded.UseBinaryUnits);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
 }

@@ -23,6 +23,7 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
     private readonly Dictionary<string, BlockIoCounters> _prevBlock = new(StringComparer.Ordinal);
     private readonly Dictionary<string, long> _unpolledBlockWriteAccum = new(StringComparer.Ordinal);
     private readonly Dictionary<(string DeviceId, long BucketStartTs), BufferedBucket> _bufferedBuckets = new();
+    private readonly Dictionary<string, int> _consecutiveSpikeCounts = new(StringComparer.Ordinal);
     private readonly List<AlertEvent> _pendingAlerts = [];
     private readonly Dictionary<string, DateTimeOffset> _thermalAlertCooldown = new(StringComparer.Ordinal);
 
@@ -245,6 +246,17 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
                 var key = (dev.DeviceId, bucketStartTs);
                 if (!_bufferedBuckets.TryGetValue(key, out var bucket))
                 {
+                    // Check previous bucket for this device: if it was normal, reset consecutive spike tracker
+                    var prevBucket = _bufferedBuckets.Values
+                        .Where(b => b.DeviceId == dev.DeviceId && b.BucketStartUtc < DateTimeOffset.FromUnixTimeSeconds(bucketStartTs))
+                        .OrderByDescending(b => b.BucketStartUtc)
+                        .FirstOrDefault();
+
+                    if (prevBucket is not null && !prevBucket.IsAnomalySpike)
+                    {
+                        _consecutiveSpikeCounts[dev.DeviceId] = 0;
+                    }
+
                     bucket = new BufferedBucket
                     {
                         DeviceId = dev.DeviceId,
@@ -311,10 +323,16 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
                 }
 
                 // Anomaly Check 1: Runaway write spike in 5-min window
-                long spikeBytesThreshold = (long)(Math.Max(0.5, settings.SpikeThresholdGbPer5Min) * 1_000_000_000.0);
+                var (ratedTbwBytes, _) = RatedTbwEstimator.Estimate(dev, smart, settings);
+                double effectiveThresholdGb = SpikeThresholdCalculator.ResolveEffectiveThresholdGb(settings, ratedTbwBytes);
+                long spikeBytesThreshold = (long)(Math.Max(0.5, effectiveThresholdGb) * 1_000_000_000.0);
+
                 if (!bucket.IsAnomalySpike && bucket.DeltaBytesWritten >= spikeBytesThreshold)
                 {
                     bucket.IsAnomalySpike = true;
+                    int consecutive = _consecutiveSpikeCounts.GetValueOrDefault(dev.DeviceId, 0) + 1;
+                    _consecutiveSpikeCounts[dev.DeviceId] = consecutive;
+
                     var topCulprit = bucket.ProcessTotals
                         .OrderByDescending(x => x.Value.BytesWritten)
                         .FirstOrDefault();
@@ -323,16 +341,69 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
                         ? $" Top writer: {topCulprit.Key} ({ByteFormatter.FormatBytes(topCulprit.Value.BytesWritten)})."
                         : string.Empty;
 
-                    RaiseAlertLocked(new AlertEvent
+                    // Calculate total whitelisted write share in this bucket
+                    long whitelistedBytes = bucket.ProcessTotals
+                        .Where(p => SpikeThresholdCalculator.IsProcessWhitelisted(p.Key, p.Value.ExePath, settings.ProcessWhitelist))
+                        .Sum(p => p.Value.BytesWritten);
+                    double whitelistedShare = bucket.DeltaBytesWritten > 0 ? (double)whitelistedBytes / bucket.DeltaBytesWritten : 0.0;
+                    bool primaryWhitelisted = whitelistedShare >= 0.65;
+
+                    // Critical emergency threshold: >= 50 GB / 5 min or >= 3x threshold
+                    long emergencyCriticalBytes = Math.Max(50_000_000_000L, spikeBytesThreshold * 3);
+                    bool isEmergencyCritical = bucket.DeltaBytesWritten >= emergencyCriticalBytes;
+
+                    int requiredCycles = Math.Clamp(settings.SustainedSpikeThresholdCycles, 1, 5);
+
+                    if (primaryWhitelisted && !isEmergencyCritical)
                     {
-                        TimestampUtc = now,
-                        DeviceId = dev.DeviceId,
-                        Severity = "Warning",
-                        Category = "RunawayWrite",
-                        Title = "Abnormal Disk Write Spike",
-                        Message = $"{dev.Model} wrote {ByteFormatter.FormatBytes(bucket.DeltaBytesWritten)} within 5 minutes.{culpritText}"
-                    });
-                    immediateFlushNeeded = true;
+                        RaiseAlertLocked(new AlertEvent
+                        {
+                            TimestampUtc = now,
+                            DeviceId = dev.DeviceId,
+                            Severity = "Info",
+                            Category = "ExpectedWorkload",
+                            Title = "Whitelisted Process Write Burst",
+                            Message = $"{dev.Model} wrote {ByteFormatter.FormatBytes(bucket.DeltaBytesWritten)} within 5 min (whitelisted process {topCulprit.Key}). Desktop alert suppressed."
+                        });
+                    }
+                    else if (isEmergencyCritical)
+                    {
+                        RaiseAlertLocked(new AlertEvent
+                        {
+                            TimestampUtc = now,
+                            DeviceId = dev.DeviceId,
+                            Severity = "Critical",
+                            Category = "CriticalRunawayWrite",
+                            Title = "Critical Runaway Write Burst",
+                            Message = $"{dev.Model} wrote {ByteFormatter.FormatBytes(bucket.DeltaBytesWritten)} in 5 min (Critical emergency rate).{culpritText}"
+                        });
+                        immediateFlushNeeded = true;
+                    }
+                    else if (consecutive >= requiredCycles)
+                    {
+                        RaiseAlertLocked(new AlertEvent
+                        {
+                            TimestampUtc = now,
+                            DeviceId = dev.DeviceId,
+                            Severity = "Warning",
+                            Category = "SustainedRunawayWrite",
+                            Title = $"Sustained Write Spike ({consecutive} Intervals)",
+                            Message = $"{dev.Model} wrote {ByteFormatter.FormatBytes(bucket.DeltaBytesWritten)} in 5 min (sustained over {consecutive} intervals).{culpritText}"
+                        });
+                        immediateFlushNeeded = true;
+                    }
+                    else
+                    {
+                        RaiseAlertLocked(new AlertEvent
+                        {
+                            TimestampUtc = now,
+                            DeviceId = dev.DeviceId,
+                            Severity = "Info",
+                            Category = "TransientBurst",
+                            Title = $"Transient Write Burst (Cycle {consecutive}/{requiredCycles})",
+                            Message = $"{dev.Model} wrote {ByteFormatter.FormatBytes(bucket.DeltaBytesWritten)} in 5 min. Monitoring for sustained write pattern.{culpritText}"
+                        });
+                    }
                 }
 
                 // Anomaly Check 2: Composite Temperature thresholds (15-min cooldown)
@@ -477,7 +548,7 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
     private void RaiseAlertLocked(AlertEvent alert)
     {
         _pendingAlerts.Add(alert);
-        if (_settings.EnableDesktopNotifications)
+        if (_settings.EnableDesktopNotifications && !alert.Severity.Equals("Info", StringComparison.OrdinalIgnoreCase))
         {
             NotificationDispatcher.SendDesktopNotification(alert);
         }
