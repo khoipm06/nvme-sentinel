@@ -40,7 +40,9 @@ public partial class App : Application
             desktop.ShutdownRequested += (_, _) =>
             {
                 _allowRealClose = true;
-                ExitApplication(desktop);
+                if (Interlocked.Exchange(ref _isShuttingDown, 1) == 1) return;
+                CleanupAppResources();
+                // Note: Do NOT call desktop.Shutdown() here; Avalonia is already running its shutdown sequence.
             };
 
             if (OperatingSystem.IsLinux())
@@ -201,17 +203,49 @@ public partial class App : Application
         _mainWindow.Activate();
     }
 
+    private int _isShuttingDown;
+
+    private void CleanupAppResources()
+    {
+        try
+        {
+            if (_trayIcon is not null)
+            {
+                _trayIcon.IsVisible = false;
+                _trayIcon.Dispose();
+                _trayIcon = null;
+            }
+        }
+        catch
+        {
+            // Ignore disposal exceptions during shutdown
+        }
+
+        try
+        {
+            _viewModel?.Dispose();
+            _viewModel = null;
+        }
+        catch
+        {
+            // Ignore viewmodel disposal errors during shutdown
+        }
+    }
+
     private void ExitApplication(IClassicDesktopStyleApplicationLifetime desktop)
     {
         _allowRealClose = true;
-        if (_trayIcon is not null)
-        {
-            _trayIcon.IsVisible = false;
-            _trayIcon.Dispose();
-            _trayIcon = null;
-        }
+        if (Interlocked.Exchange(ref _isShuttingDown, 1) == 1) return;
 
-        _viewModel?.Dispose();
-        desktop.Shutdown();
+        CleanupAppResources();
+
+        try
+        {
+            desktop.Shutdown();
+        }
+        catch
+        {
+            // Ignore if already shutting down
+        }
     }
 }
