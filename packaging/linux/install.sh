@@ -30,6 +30,11 @@ echo -e "Target installation directory: ${BOLD}${INSTALL_DIR}${RESET}"
 # 2. Create directories
 mkdir -p "$INSTALL_DIR" "$BIN_DIR" "$DESKTOP_DIR" "$SYSTEMD_USER_DIR"
 
+# Stop existing daemon service if running to allow clean binary replacement (prevent ETXTBSY)
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user stop nvme-sentinel.service 2>/dev/null || true
+fi
+
 # 3. Copy application binaries and runtime files
 echo "Installing application binaries..."
 # If executed from inside an unpacked release bundle or repo root:
@@ -43,8 +48,8 @@ else
     SRC_DIR="$SCRIPT_DIR"
 fi
 
-# Copy all files from source directory to target installation directory
-cp -a "$SRC_DIR"/* "$INSTALL_DIR/" 2>/dev/null || true
+# Copy all files from source directory to target installation directory (--remove-destination unlinks active inodes)
+cp -a --remove-destination "$SRC_DIR"/* "$INSTALL_DIR/" 2>/dev/null || cp -a "$SRC_DIR"/* "$INSTALL_DIR/" 2>/dev/null || true
 # Ensure executables have execute permissions
 chmod +x "$INSTALL_DIR/nvme-sentinel" "$INSTALL_DIR/nvme-sentinel-daemon" 2>/dev/null || true
 
@@ -110,7 +115,8 @@ if [ -f "$SERVICE_SRC" ]; then
     cp "$SERVICE_SRC" "$SYSTEMD_USER_DIR/nvme-sentinel.service"
     if command -v systemctl >/dev/null 2>&1; then
         systemctl --user daemon-reload || true
-        systemctl --user enable --now nvme-sentinel.service 2>/dev/null || true
+        systemctl --user enable nvme-sentinel.service 2>/dev/null || true
+        systemctl --user restart nvme-sentinel.service 2>/dev/null || systemctl --user start nvme-sentinel.service 2>/dev/null || true
     fi
 fi
 
