@@ -251,5 +251,6 @@ public sealed class DaemonSettings
     public bool DarkTheme { get; set; } = true;
     public bool StartDaemonAtLogin { get; set; }
     public bool UseBinaryUnits { get; set; }
+    public string? CustomDatabaseDirectory { get; set; }
     public Dictionary<string, double> CustomRatedTbwTb { get; set; } = new();
 }

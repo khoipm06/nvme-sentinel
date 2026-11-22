@@ -6,9 +6,17 @@ namespace NvmeSentinel.Core.Storage;
 public static class AppPaths
 {
     public const string AppFolderName = "nvme-sentinel";
+    public const string DatabaseFileName = "history.db";
+    public static string? CustomDataDirectory { get; set; }
 
     public static string GetDataDirectory()
     {
+        if (!string.IsNullOrWhiteSpace(CustomDataDirectory))
+        {
+            Directory.CreateDirectory(CustomDataDirectory);
+            return CustomDataDirectory;
+        }
+
         var overrideDir = Environment.GetEnvironmentVariable("NVME_SENTINEL_DATA_DIR");
         if (!string.IsNullOrWhiteSpace(overrideDir))
         {
@@ -41,7 +49,29 @@ public static class AppPaths
         return dir;
     }
 
-    public static string GetDatabasePath() => Path.Combine(GetDataDirectory(), "telemetry.db");
+    public static string GetDatabasePath()
+    {
+        var dir = GetDataDirectory();
+        var newDbPath = Path.Combine(dir, DatabaseFileName);
+        var oldDbPath = Path.Combine(dir, "telemetry.db");
+
+        // Transparent automatic migration from old telemetry.db to user-friendly history.db
+        if (!File.Exists(newDbPath) && File.Exists(oldDbPath))
+        {
+            try
+            {
+                File.Move(oldDbPath, newDbPath);
+                if (File.Exists(oldDbPath + "-wal")) File.Move(oldDbPath + "-wal", newDbPath + "-wal");
+                if (File.Exists(oldDbPath + "-shm")) File.Move(oldDbPath + "-shm", newDbPath + "-shm");
+            }
+            catch
+            {
+                return oldDbPath;
+            }
+        }
+
+        return newDbPath;
+    }
 
     public static string GetSettingsPath() => Path.Combine(GetDataDirectory(), "settings.json");
 

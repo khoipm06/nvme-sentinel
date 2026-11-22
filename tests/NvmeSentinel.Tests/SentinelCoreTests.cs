@@ -377,4 +377,62 @@ public sealed class SentinelCoreTests
             Directory.Delete(tempDir, recursive: true);
         }
     }
+
+    [Fact]
+    public void AppPaths_UsesHistoryDbAndSupportsCustomDirectory()
+    {
+        var originalCustom = AppPaths.CustomDataDirectory;
+        var testDir = Path.Combine(Path.GetTempPath(), $"sentinel-custom-{Guid.NewGuid():N}");
+
+        try
+        {
+            AppPaths.CustomDataDirectory = testDir;
+            Assert.Equal(testDir, AppPaths.GetDataDirectory());
+            Assert.Equal(Path.Combine(testDir, "history.db"), AppPaths.GetDatabasePath());
+        }
+        finally
+        {
+            AppPaths.CustomDataDirectory = originalCustom;
+            if (Directory.Exists(testDir))
+            {
+                Directory.Delete(testDir, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void AppPaths_MigratesLegacyTelemetryDbToHistoryDb()
+    {
+        var originalCustom = AppPaths.CustomDataDirectory;
+        var testDir = Path.Combine(Path.GetTempPath(), $"sentinel-mig-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(testDir);
+
+        try
+        {
+            AppPaths.CustomDataDirectory = testDir;
+            var oldDb = Path.Combine(testDir, "telemetry.db");
+            var oldWal = Path.Combine(testDir, "telemetry.db-wal");
+            var newDb = Path.Combine(testDir, "history.db");
+            var newWal = Path.Combine(testDir, "history.db-wal");
+
+            File.WriteAllText(oldDb, "legacy-data");
+            File.WriteAllText(oldWal, "legacy-wal");
+
+            var resolvedPath = AppPaths.GetDatabasePath();
+            Assert.Equal(newDb, resolvedPath);
+            Assert.True(File.Exists(newDb));
+            Assert.True(File.Exists(newWal));
+            Assert.False(File.Exists(oldDb));
+            Assert.False(File.Exists(oldWal));
+            Assert.Equal("legacy-data", File.ReadAllText(newDb));
+        }
+        finally
+        {
+            AppPaths.CustomDataDirectory = originalCustom;
+            if (Directory.Exists(testDir))
+            {
+                Directory.Delete(testDir, recursive: true);
+            }
+        }
+    }
 }
