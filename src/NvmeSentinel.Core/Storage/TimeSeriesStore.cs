@@ -27,6 +27,35 @@ public sealed class BufferedBucket
         new(StringComparer.OrdinalIgnoreCase);
 
     public double AvgTempCelsius => TempSamples > 0 ? Math.Round(TempSum / TempSamples, 1) : MaxTempCelsius;
+
+    public BufferedBucket Clone()
+    {
+        var clone = new BufferedBucket
+        {
+            DeviceId = DeviceId,
+            BucketStartUtc = BucketStartUtc,
+            BucketEndUtc = BucketEndUtc,
+            StartBytesWritten = StartBytesWritten,
+            EndBytesWritten = EndBytesWritten,
+            StartBytesRead = StartBytesRead,
+            EndBytesRead = EndBytesRead,
+            DeltaBytesWritten = DeltaBytesWritten,
+            DeltaBytesRead = DeltaBytesRead,
+            TempSum = TempSum,
+            TempSamples = TempSamples,
+            MaxTempCelsius = MaxTempCelsius,
+            PercentUsed = PercentUsed,
+            AvailableSpare = AvailableSpare,
+            UnsafeShutdowns = UnsafeShutdowns,
+            MediaErrors = MediaErrors,
+            IsAnomalySpike = IsAnomalySpike
+        };
+        foreach (var kv in ProcessTotals)
+        {
+            clone.ProcessTotals[kv.Key] = kv.Value;
+        }
+        return clone;
+    }
 }
 
 public sealed class TimeSeriesStore : IDisposable

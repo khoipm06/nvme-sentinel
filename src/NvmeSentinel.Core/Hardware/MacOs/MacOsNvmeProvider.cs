@@ -1,12 +1,14 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using NvmeSentinel.Core.Models;
 
 namespace NvmeSentinel.Core.Hardware.MacOs;
 
 public sealed class MacOsNvmeProvider : INvmeProvider
 {
+    private static readonly Regex SafeBsdDiskRegex = new(@"^/dev/disk\d+(s\d+)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     public string BackendName => "macOS SPNVMe + IOKit / smartctl";
 
     public async Task<List<NvmeDeviceInfo>> DiscoverDevicesAsync(CancellationToken ct = default)
@@ -129,8 +131,14 @@ public sealed class MacOsNvmeProvider : INvmeProvider
 
     public async Task<(bool Ok, string Message)> StartSelfTestAsync(NvmeDeviceInfo device, string testType, CancellationToken ct = default)
     {
+        var path = device.DevicePath?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(path) || !SafeBsdDiskRegex.IsMatch(path))
+        {
+            return (false, $"Invalid device path format '{device.DevicePath}'. Self-test rejected for system safety.");
+        }
+
         var smartType = testType.Equals("extended", StringComparison.OrdinalIgnoreCase) ? "long" : "short";
-        var script = $"do shell script \"smartctl -t {smartType} {device.DevicePath}\" with administrator privileges";
+        var script = $"do shell script \"smartctl -t {smartType} {path}\" with administrator privileges";
         var outStr = await RunCaptureAsync("osascript", ["-e", script], ct);
         return outStr is not null
             ? (true, $"Started NVMe {testType} self-test.")
@@ -155,9 +163,21 @@ public sealed class MacOsNvmeProvider : INvmeProvider
             foreach (var a in args) psi.ArgumentList.Add(a);
             using var p = Process.Start(psi);
             if (p is null) return null;
-            var stdout = await p.StandardOutput.ReadToEndAsync(ct);
-            await p.WaitForExitAsync(ct);
-            return p.ExitCode == 0 ? stdout : null;
+            try
+            {
+                var stdout = await p.StandardOutput.ReadToEndAsync(ct);
+                await p.WaitForExitAsync(ct);
+                return p.ExitCode == 0 ? stdout : null;
+            }
+            catch (OperationCanceledException)
+            {
+                try { if (!p.HasExited) p.Kill(entireProcessTree: true); } catch { }
+                throw;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch
         {

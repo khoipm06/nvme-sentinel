@@ -15,8 +15,8 @@ public static class AutostartManager
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                var (code, _) = RunSync("reg", [@"query", @"HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "/v", WindowsRunValueName]);
-                return code == 0;
+                using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", writable: false);
+                return key?.GetValue(WindowsRunValueName) is not null;
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -45,17 +45,20 @@ public static class AutostartManager
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
+                using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", writable: true);
+                if (key is null)
+                {
+                    return (false, "Could not open HKCU Run registry key.");
+                }
+
                 if (enable)
                 {
-                    var (code, err) = RunSync("reg",
-                        [@"add", @"HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "/v", WindowsRunValueName, "/t", "REG_SZ", "/d", $"\"{daemonExecutablePath}\"", "/f"]);
-                    return code == 0
-                        ? (true, "Enabled Windows user login startup.")
-                        : (false, $"Failed to write Windows registry Run key: {err}");
+                    key.SetValue(WindowsRunValueName, $"\"{daemonExecutablePath}\"", Microsoft.Win32.RegistryValueKind.String);
+                    return (true, "Enabled Windows user login startup.");
                 }
                 else
                 {
-                    RunSync("reg", [@"delete", @"HKCU\Software\Microsoft\Windows\CurrentVersion\Run", "/v", WindowsRunValueName, "/f"]);
+                    key.DeleteValue(WindowsRunValueName, throwOnMissingValue: false);
                     return (true, "Disabled Windows user login startup.");
                 }
             }

@@ -78,8 +78,33 @@ if (argsSet.Contains("--waybar") || argsSet.Contains("--bar"))
 if (argsSet.Contains("--export"))
 {
     int idx = Array.FindIndex(args, a => a.Equals("--export", StringComparison.OrdinalIgnoreCase));
-    string fmt = idx >= 0 && idx + 1 < args.Length && !args[idx + 1].StartsWith("--") ? args[idx + 1] : "csv";
-    string? path = idx >= 0 && idx + 2 < args.Length && !args[idx + 2].StartsWith("--") ? args[idx + 2] : null;
+    string fmt = "csv";
+    string? path = null;
+
+    if (idx >= 0 && idx + 1 < args.Length && !args[idx + 1].StartsWith("--"))
+    {
+        var firstArg = args[idx + 1];
+        if (firstArg.Equals("csv", StringComparison.OrdinalIgnoreCase) || firstArg.Equals("json", StringComparison.OrdinalIgnoreCase))
+        {
+            fmt = firstArg.ToLowerInvariant();
+            if (idx + 2 < args.Length && !args[idx + 2].StartsWith("--"))
+            {
+                path = args[idx + 2];
+            }
+        }
+        else
+        {
+            path = firstArg;
+            if (path.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                fmt = "json";
+            }
+            else if (path.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                fmt = "csv";
+            }
+        }
+    }
 
     if (!await ipcClient.PingAsync())
     {
@@ -89,7 +114,7 @@ if (argsSet.Contains("--export"))
 
     var resp = await ipcClient.SendAsync(new IpcRequest
     {
-        Command = "ExportData",
+        Command = NvmeSentinel.Core.Common.IpcCommands.ExportData,
         ExportFormat = fmt,
         ExportPath = path
     });

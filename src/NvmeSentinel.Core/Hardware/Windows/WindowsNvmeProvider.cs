@@ -126,7 +126,7 @@ public sealed class WindowsNvmeProvider : INvmeProvider
         return await SmartctlFallbackParser.ReadSmartAsync(device, ct);
     }
 
-    public Task<(bool Ok, string Message)> StartSelfTestAsync(NvmeDeviceInfo device, string testType, CancellationToken ct = default)
+    public async Task<(bool Ok, string Message)> StartSelfTestAsync(NvmeDeviceInfo device, string testType, CancellationToken ct = default)
     {
         var smartctlType = testType.Equals("extended", StringComparison.OrdinalIgnoreCase) ? "long" : "short";
         try
@@ -143,17 +143,29 @@ public sealed class WindowsNvmeProvider : INvmeProvider
             using var proc = Process.Start(psi);
             if (proc is null)
             {
-                return Task.FromResult((false, "Could not launch elevated smartctl process."));
+                return (false, "Could not launch elevated smartctl process.");
             }
 
-            proc.WaitForExit(15_000);
-            return Task.FromResult(proc.ExitCode == 0
-                ? (true, $"Started NVMe {testType} self-test.")
-                : (false, $"smartctl exited with status {proc.ExitCode}. Ensure smartmontools is installed."));
+            try
+            {
+                await proc.WaitForExitAsync(ct);
+                return proc.ExitCode == 0
+                    ? (true, $"Started NVMe {testType} self-test.")
+                    : (false, $"smartctl exited with status {proc.ExitCode}. Ensure smartmontools is installed.");
+            }
+            catch (OperationCanceledException)
+            {
+                try { if (!proc.HasExited) proc.Kill(entireProcessTree: true); } catch { }
+                throw;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            return Task.FromResult((false, $"Elevation canceled or smartctl unavailable: {ex.Message}"));
+            return (false, $"Elevation canceled or smartctl unavailable: {ex.Message}");
         }
     }
 
@@ -206,8 +218,9 @@ public sealed class WindowsNvmeProvider : INvmeProvider
             byte spareThresh = log[4];
             byte percentUsed = log[5];
 
-            ulong dataUnitsRead = BitConverter.ToUInt64(log.Slice(32, 8));
-            ulong dataUnitsWritten = BitConverter.ToUInt64(log.Slice(48, 8));
+            // NVMe spec: Data Units Read/Written are 128-bit unsigned integers (16 bytes) at offsets 32 and 48
+            UInt128 dataUnitsRead = System.Buffers.Binary.BinaryPrimitives.ReadUInt128LittleEndian(log.Slice(32, 16));
+            UInt128 dataUnitsWritten = System.Buffers.Binary.BinaryPrimitives.ReadUInt128LittleEndian(log.Slice(48, 16));
             ulong ctrlBusy = BitConverter.ToUInt64(log.Slice(96, 8));
             ulong powerCycles = BitConverter.ToUInt64(log.Slice(112, 8));
             ulong powerOnHours = BitConverter.ToUInt64(log.Slice(128, 8));
@@ -216,6 +229,11 @@ public sealed class WindowsNvmeProvider : INvmeProvider
             ulong errorLogEntries = BitConverter.ToUInt64(log.Slice(176, 8));
             uint warnTempTime = BitConverter.ToUInt32(log.Slice(192, 4));
             uint critTempTime = BitConverter.ToUInt32(log.Slice(196, 4));
+
+            UInt128 bytesRead128 = dataUnitsRead * (UInt128)NvmeSentinel.Core.Common.NvmeConstants.BytesPerDataUnit;
+            UInt128 bytesWritten128 = dataUnitsWritten * (UInt128)NvmeSentinel.Core.Common.NvmeConstants.BytesPerDataUnit;
+            long totalBytesRead = bytesRead128 > (UInt128)long.MaxValue ? long.MaxValue : (long)bytesRead128;
+            long totalBytesWritten = bytesWritten128 > (UInt128)long.MaxValue ? long.MaxValue : (long)bytesWritten128;
 
             var snap = new SmartSnapshot
             {
@@ -226,8 +244,8 @@ public sealed class WindowsNvmeProvider : INvmeProvider
                 AvailableSpare = availSpare,
                 SpareThreshold = spareThresh,
                 PercentUsed = percentUsed,
-                TotalBytesRead = (long)Math.Min(dataUnitsRead * 512_000UL, long.MaxValue),
-                TotalBytesWritten = (long)Math.Min(dataUnitsWritten * 512_000UL, long.MaxValue),
+                TotalBytesRead = totalBytesRead,
+                TotalBytesWritten = totalBytesWritten,
                 ControllerBusyMinutes = (long)ctrlBusy,
                 PowerCycles = (long)powerCycles,
                 PowerOnHours = (long)powerOnHours,

@@ -432,7 +432,7 @@ public sealed class LinuxNvmeProvider : INvmeProvider
         {
             if (!_hwmonSensorCache.TryGetValue(ctrlDir, out var cachedPaths))
             {
-                cachedPaths = [];
+                var discovered = new List<(string InputPath, string Label)>();
                 var hwmonDirs = Directory.GetDirectories(ctrlDir, "hwmon*");
                 foreach (var hwDir in hwmonDirs)
                 {
@@ -440,9 +440,10 @@ public sealed class LinuxNvmeProvider : INvmeProvider
                     {
                         var labelFile = inputFile.Replace("_input", "_label", StringComparison.Ordinal);
                         var label = ReadSysfsTrimmed(labelFile) ?? Path.GetFileNameWithoutExtension(inputFile);
-                        cachedPaths.Add((inputFile, label));
+                        discovered.Add((inputFile, label));
                     }
                 }
+                cachedPaths = discovered;
                 _hwmonSensorCache[ctrlDir] = cachedPaths;
             }
 
@@ -566,10 +567,22 @@ public sealed class LinuxNvmeProvider : INvmeProvider
                 return (-1, "", "Failed to start process.");
             }
 
-            var outTask = proc.StandardOutput.ReadToEndAsync(ct);
-            var errTask = proc.StandardError.ReadToEndAsync(ct);
-            await proc.WaitForExitAsync(ct);
-            return (proc.ExitCode, await outTask, await errTask);
+            try
+            {
+                var outTask = proc.StandardOutput.ReadToEndAsync(ct);
+                var errTask = proc.StandardError.ReadToEndAsync(ct);
+                await proc.WaitForExitAsync(ct);
+                return (proc.ExitCode, await outTask, await errTask);
+            }
+            catch (OperationCanceledException)
+            {
+                try { if (!proc.HasExited) proc.Kill(entireProcessTree: true); } catch { }
+                throw;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {

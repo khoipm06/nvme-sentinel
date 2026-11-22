@@ -16,12 +16,8 @@ public static class RatedTbwEstimator
             return ((long)Math.Round(customTb * OneTerabyte), "Custom User Override");
         }
 
-        double capacityTb = device.CapacityBytes > 0
-            ? Math.Max(0.125, Math.Round(device.CapacityBytes / (double)OneTerabyte * 4.0) / 4.0)
-            : 1.0;
-
         // Normalize common capacities (e.g., 1.024 TB -> 1.0 TB, 0.512 TB -> 0.5 TB, 2.048 TB -> 2.0 TB)
-        capacityTb = NormalizeCapacityTb(device.CapacityBytes);
+        double capacityTb = NormalizeCapacityTb(device.CapacityBytes);
 
         var modelUpper = (device.Model ?? string.Empty).ToUpperInvariant();
 

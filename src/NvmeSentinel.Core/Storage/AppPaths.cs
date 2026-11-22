@@ -101,11 +101,19 @@ public enum ByteUnitStandard
 
 public static class ByteFormatter
 {
+    private static readonly string[] s_binaryUnits = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
+    private static readonly string[] s_decimalUnits = ["B", "KB", "MB", "GB", "TB", "PB"];
+
     public static ByteUnitStandard CurrentStandard { get; set; } = ByteUnitStandard.DecimalSi;
 
     public static string FormatBytes(long bytes, int decimals = 2, ByteUnitStandard? standard = null)
     {
         var std = standard ?? CurrentStandard;
+        if (bytes == long.MinValue)
+        {
+            return "-" + FormatBytes(long.MaxValue, decimals, std);
+        }
+
         if (bytes < 0)
         {
             return "-" + FormatBytes(-bytes, decimals, std);
@@ -120,30 +128,28 @@ public static class ByteFormatter
         string unit;
         if (std == ByteUnitStandard.BinaryIec)
         {
-            string[] units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
             int idx = 0;
-            while (value >= 1024.0 && idx < units.Length - 1)
+            while (value >= 1024.0 && idx < s_binaryUnits.Length - 1)
             {
                 value /= 1024.0;
                 idx++;
             }
 
             if (idx == 0) return $"{bytes} B";
-            unit = units[idx];
+            unit = s_binaryUnits[idx];
         }
         else
         {
             // Hardware storage manufacturers define TBW in decimal Terabytes (1 TB = 10^12 bytes).
-            string[] units = ["B", "KB", "MB", "GB", "TB", "PB"];
             int idx = 0;
-            while (value >= 1000.0 && idx < units.Length - 1)
+            while (value >= 1000.0 && idx < s_decimalUnits.Length - 1)
             {
                 value /= 1000.0;
                 idx++;
             }
 
             if (idx == 0) return $"{bytes} B";
-            unit = units[idx];
+            unit = s_decimalUnits[idx];
         }
 
         string numStr = value.ToString($"F{decimals}", CultureInfo.InvariantCulture);

@@ -591,7 +591,7 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
         lock (_stateLock)
         {
             _todayBaselines.Clear();
-            bucketsToFlush = _bufferedBuckets.Values.ToList();
+            bucketsToFlush = _bufferedBuckets.Values.Select(b => b.Clone()).ToList();
             smartCopy = new Dictionary<string, SmartSnapshot>(_latestSmart, StringComparer.Ordinal);
             alertsToSave = _pendingAlerts.ToList();
             _pendingAlerts.Clear();

@@ -9,10 +9,18 @@ namespace NvmeSentinel.Core.Ipc;
 
 public sealed class SentinelIpcServer : IAsyncDisposable
 {
+    private sealed class LiveSubscriber : IDisposable
+    {
+        public required StreamWriter Writer { get; init; }
+        public SemaphoreSlim Gate { get; } = new(1, 1);
+
+        public void Dispose() => Gate.Dispose();
+    }
+
     private readonly string _pipeName;
     private readonly Func<IpcRequest, CancellationToken, Task<IpcResponse>> _handler;
     private readonly CancellationTokenSource _cts = new();
-    private readonly ConcurrentDictionary<Guid, StreamWriter> _liveSubscribers = new();
+    private readonly ConcurrentDictionary<Guid, LiveSubscriber> _liveSubscribers = new();
     private readonly List<Task> _acceptLoops = [];
 
     public int SubscriberCount => _liveSubscribers.Count;
@@ -50,14 +58,26 @@ public sealed class SentinelIpcServer : IAsyncDisposable
 
         foreach (var kv in _liveSubscribers)
         {
+            var sub = kv.Value;
+            if (!await sub.Gate.WaitAsync(100))
+            {
+                continue;
+            }
             try
             {
-                await kv.Value.WriteLineAsync(line);
-                await kv.Value.FlushAsync();
+                await sub.Writer.WriteLineAsync(line);
+                await sub.Writer.FlushAsync();
             }
             catch
             {
-                _liveSubscribers.TryRemove(kv.Key, out _);
+                if (_liveSubscribers.TryRemove(kv.Key, out var removed))
+                {
+                    removed.Dispose();
+                }
+            }
+            finally
+            {
+                try { sub.Gate.Release(); } catch { }
             }
         }
     }
@@ -126,10 +146,11 @@ public sealed class SentinelIpcServer : IAsyncDisposable
                         continue;
                     }
 
-                    if (req.Command.Equals("SubscribeLive", StringComparison.OrdinalIgnoreCase))
+                    if (req.Command.Equals(NvmeSentinel.Core.Common.IpcCommands.SubscribeLive, StringComparison.OrdinalIgnoreCase))
                     {
                         subId = Guid.NewGuid();
-                        _liveSubscribers[subId.Value] = writer;
+                        var sub = new LiveSubscriber { Writer = writer };
+                        _liveSubscribers[subId.Value] = sub;
                         await writer.WriteLineAsync(JsonSerializer.Serialize(new IpcResponse
                         {
                             Id = req.Id,
@@ -162,9 +183,9 @@ public sealed class SentinelIpcServer : IAsyncDisposable
         }
         finally
         {
-            if (subId.HasValue)
+            if (subId.HasValue && _liveSubscribers.TryRemove(subId.Value, out var removed))
             {
-                _liveSubscribers.TryRemove(subId.Value, out _);
+                removed.Dispose();
             }
         }
     }
@@ -172,6 +193,10 @@ public sealed class SentinelIpcServer : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _cts.CancelAsync();
+        foreach (var sub in _liveSubscribers.Values)
+        {
+            sub.Dispose();
+        }
         _liveSubscribers.Clear();
         try
         {

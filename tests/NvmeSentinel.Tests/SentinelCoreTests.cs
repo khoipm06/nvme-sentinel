@@ -443,4 +443,86 @@ public sealed class SentinelCoreTests
             }
         }
     }
+
+    [Fact]
+    public void ByteFormatter_HandlesLongMinValueWithoutOverflowOrInfiniteRecursion()
+    {
+        // Testing that long.MinValue does not cause infinite recursion or stack overflow
+        var formatted = ByteFormatter.FormatBytes(long.MinValue, 2, ByteUnitStandard.DecimalSi);
+        Assert.StartsWith("-", formatted);
+        Assert.EndsWith("PB", formatted);
+
+        var formattedBin = ByteFormatter.FormatBytes(long.MinValue, 2, ByteUnitStandard.BinaryIec);
+        Assert.StartsWith("-", formattedBin);
+        Assert.EndsWith("PiB", formattedBin);
+
+        Assert.Equal("0 B", ByteFormatter.FormatBytes(0));
+        Assert.Equal("1 KB", ByteFormatter.FormatBytes(1000, 2, ByteUnitStandard.DecimalSi));
+        Assert.Equal("1 KiB", ByteFormatter.FormatBytes(1024, 2, ByteUnitStandard.BinaryIec));
+    }
+
+    [Fact]
+    public void BufferedBucket_Clone_ProducesIndependentDeepCopy()
+    {
+        var original = new BufferedBucket
+        {
+            DeviceId = "nvme0n1",
+            BucketStartUtc = DateTimeOffset.UtcNow.AddMinutes(-5),
+            BucketEndUtc = DateTimeOffset.UtcNow,
+            StartBytesWritten = 10_000,
+            EndBytesWritten = 20_000,
+            DeltaBytesWritten = 10_000,
+            DeltaBytesRead = 5_000,
+            TempSum = 90.0,
+            TempSamples = 2,
+            MaxTempCelsius = 46.0,
+            PercentUsed = 5,
+            AvailableSpare = 99,
+            UnsafeShutdowns = 1,
+            MediaErrors = 0,
+            IsAnomalySpike = true
+        };
+        original.ProcessTotals["testproc"] = ("/bin/testproc", 5000, 2000);
+
+        var cloned = original.Clone();
+
+        Assert.Equal(original.DeviceId, cloned.DeviceId);
+        Assert.Equal(original.DeltaBytesWritten, cloned.DeltaBytesWritten);
+        Assert.Equal(original.MaxTempCelsius, cloned.MaxTempCelsius);
+        Assert.True(cloned.IsAnomalySpike);
+        Assert.Single(cloned.ProcessTotals);
+        Assert.Equal(5000, cloned.ProcessTotals["testproc"].BytesWritten);
+
+        // Mutate original and assert clone is isolated
+        original.DeltaBytesWritten = 0;
+        original.ProcessTotals.Clear();
+
+        Assert.Equal(10_000, cloned.DeltaBytesWritten);
+        Assert.Single(cloned.ProcessTotals);
+    }
+
+    [Fact]
+    public void RatedTbwEstimator_NormalizesCapacityAndRecognizesPresets()
+    {
+        var settings = new DaemonSettings();
+        var qlcDev = new NvmeDeviceInfo
+        {
+            DeviceId = "crucial_p3",
+            Model = "Crucial P3 Plus 1TB",
+            CapacityBytes = 1_000_204_886_016L
+        };
+        var (qlcBytes, qlcSource) = RatedTbwEstimator.Estimate(qlcDev, null, settings);
+        Assert.Equal(320_000_000_000_000L, qlcBytes); // 320 TB for 1TB QLC
+        Assert.Contains("QLC", qlcSource);
+
+        var tlcDev = new NvmeDeviceInfo
+        {
+            DeviceId = "samsung_980",
+            Model = "Samsung SSD 980 PRO 2TB",
+            CapacityBytes = 2_000_398_934_016L
+        };
+        var (tlcBytes, tlcSource) = RatedTbwEstimator.Estimate(tlcDev, null, settings);
+        Assert.Equal(1_200_000_000_000_000L, tlcBytes); // 600 TB/TB * 2TB = 1200 TB
+        Assert.Contains("TLC", tlcSource);
+    }
 }
