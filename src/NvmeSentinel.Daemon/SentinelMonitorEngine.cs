@@ -52,6 +52,10 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
     public async Task InitializeAndStartAsync(CancellationToken ct = default)
     {
         _settings = _store.LoadSettings();
+        if (!string.IsNullOrWhiteSpace(_settings.CustomDatabaseDirectory))
+        {
+            AppPaths.CustomDataDirectory = _settings.CustomDatabaseDirectory;
+        }
         _settings.StartDaemonAtLogin = AutostartManager.IsAutostartEnabled();
 
         var persistedSmart = _store.LoadLatestSmartSnapshots();
@@ -507,14 +511,22 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
 
         if (cur.UnsafeShutdowns > prev.UnsafeShutdowns)
         {
+            long diff = cur.UnsafeShutdowns - prev.UnsafeShutdowns;
+            // On Linux laptops and modern platforms, clean warm reboots trigger an ACPI PCIe rail power drop
+            // before standard NVMe shutdown completion, incrementing the hardware counter by 1.
+            // When detected at startup with diff == 1, log as Info without firing noisy warning alarms.
+            bool isNormalRebootArtifact = cur.TriggerReason == "startup" && diff == 1;
+
             RaiseAlertLocked(new AlertEvent
             {
                 TimestampUtc = cur.TimestampUtc,
                 DeviceId = dev.DeviceId,
-                Severity = "Warning",
+                Severity = isNormalRebootArtifact ? "Info" : "Warning",
                 Category = "UnsafeShutdown",
-                Title = "Unsafe Shutdown Recorded",
-                Message = $"{dev.Model} logged {cur.UnsafeShutdowns - prev.UnsafeShutdowns} new unsafe power loss event(s) (Total: {cur.UnsafeShutdowns})."
+                Title = isNormalRebootArtifact ? "System Reboot Power State Handled" : "Unsafe Shutdown Recorded",
+                Message = isNormalRebootArtifact
+                    ? $"{dev.Model} power-cycled (Normal reboot power-state transition recorded by hardware. Total: {cur.UnsafeShutdowns})."
+                    : $"{dev.Model} logged {diff} new unexpected power loss event(s) (Total: {cur.UnsafeShutdowns})."
             });
         }
 
@@ -753,6 +765,10 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
 
                     statusMessage = autoMsg;
                 }
+
+                AppPaths.CustomDataDirectory = string.IsNullOrWhiteSpace(req.Settings.CustomDatabaseDirectory)
+                    ? null
+                    : req.Settings.CustomDatabaseDirectory;
 
                 lock (_stateLock)
                 {
