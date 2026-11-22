@@ -110,6 +110,16 @@
                                 </Border>
                             </Grid>
                         </Button>
+
+                        <Button Classes="nav-row"
+                                Classes.active="{Binding IsFaqPage}"
+                                Command="{Binding NavigatePageCommand}"
+                                CommandParameter="5">
+                            <Grid ColumnDefinitions="3,*">
+                                <Border Grid.Column="0" Width="2" Height="16" CornerRadius="1" Background="{DynamicResource AccentBrush}" IsVisible="{Binding IsFaqPage}" />
+                                <TextBlock Grid.Column="1" Text="Help &amp; FAQ" Margin="8,0,0,0" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
                     </StackPanel>
 
                     <!-- Quiet Footer: Daemon State -->
@@ -716,7 +726,7 @@
                                         <Grid ColumnDefinitions="*,250">
                                             <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0" VerticalAlignment="Center">
                                                 <TextBlock Text="Workload Alert Profile" FontWeight="Medium" />
-                                                <TextBlock Text="{Binding EffectiveSpikeThresholdDisplay}" FontSize="12.5" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding EffectiveSpikeThresholdDisplay}" FontSize="12.5" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
                                             </StackPanel>
                                             <ComboBox Grid.Column="1" SelectedIndex="{Binding EditAlertProfileIndex}" HorizontalAlignment="Stretch" VerticalAlignment="Center">
                                                 <ComboBoxItem Content="Office / General (5–10 GB)" />
@@ -876,49 +886,172 @@
 
                         </Grid>
 
-                        <!-- Row 2: Full-Width Storage Architecture & Database Transparency Card -->
+                        <!-- Row 2: Full-Width Local Data & Storage Management Card -->
                         <Border Classes="panel" Padding="22,18">
                             <StackPanel Spacing="14">
                                 <Grid ColumnDefinitions="*,Auto,Auto">
-                                    <TextBlock Grid.Column="0" Text="Storage architecture &amp; database" FontSize="15.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="0" Text="Data &amp; local storage" FontSize="15.5" FontWeight="SemiBold" VerticalAlignment="Center" />
                                     <Button Grid.Column="1" Classes="btn-secondary" Height="28" Content="Copy path" Command="{Binding CopyDatabasePathCommand}" Margin="0,0,8,0" />
-                                    <Button Grid.Column="2" Classes="btn-secondary" Height="28" Content="Open directory" Command="{Binding OpenDatabaseFolderCommand}" />
+                                    <Button Grid.Column="2" Classes="btn-secondary" Height="28" Content="Open folder" Command="{Binding OpenDatabaseFolderCommand}" />
                                 </Grid>
 
-                                <TextBlock Text="Telemetry is stored locally in an embedded SQLite 3 database operating in WAL (Write-Ahead Logging) mode. Zero telemetry is transmitted over the network."
-                                           FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
-
+                                <!-- 100% Offline Privacy Guarantee Badge -->
                                 <Border Background="{DynamicResource SubtleFillBrush}" CornerRadius="6" Padding="14,10">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <TextBlock Grid.Column="0" Text="🛡️" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="100% Offline &amp; Local: All write history and health metrics are saved exclusively on this machine in history.db. Zero data is ever transmitted across the network."
+                                                   FontSize="12.5" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+
+                                <!-- Storage Location & Custom Folder Setting -->
+                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,16,0">
+                                            <TextBlock Text="Database file location" FontWeight="Medium" />
+                                            <TextBlock Text="{Binding DatabasePathText}" FontFamily="Monospace" FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Text="{Binding DatabaseSizeText}" FontFamily="Monospace" FontSize="12.5" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+
+                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
+                                    <Grid ColumnDefinitions="*,260">
+                                        <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Custom storage folder" FontWeight="Medium" />
+                                            <TextBlock Text="Optionally move history.db to another folder or secondary drive. Leave blank for default." FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <TextBox Grid.Column="1"
+                                                 Text="{Binding EditCustomDataDirectory}"
+                                                 PlaceholderText="Leave empty for default directory"
+                                                 VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,4,0,0">
+                                    <Button Classes="btn-primary" Content="Save storage preferences" Command="{Binding SaveSettingsCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ==================== PAGE 5: FAQ & HELP ==================== -->
+                <ScrollViewer Grid.Row="2"
+                              IsVisible="{Binding IsFaqPage}"
+                              Padding="24,20,24,24"
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="20">
+
+                        <!-- Header Panel -->
+                        <Border Classes="panel" Padding="22,18">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Frequently Asked Questions &amp; Storage Guide" FontSize="16" FontWeight="SemiBold" />
+                                <TextBlock Text="Answers to common questions about NVMe SSD health, endurance, power states, and privacy."
+                                           FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Category 1: Privacy & Data Storage -->
+                        <Border Classes="panel" Padding="22,18">
+                            <StackPanel Spacing="16">
+                                <TextBlock Text="Privacy &amp; Data Storage" FontSize="14.5" FontWeight="SemiBold" />
+
+                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
                                     <StackPanel Spacing="6">
-                                        <Grid ColumnDefinitions="150,*">
-                                            <TextBlock Grid.Column="0" Text="Database path:" FontSize="12.5" Foreground="{DynamicResource MutedBrush}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding DatabasePathText}" FontFamily="Monospace" FontSize="12" TextWrapping="Wrap" />
-                                        </Grid>
-                                        <Grid ColumnDefinitions="150,*">
-                                            <TextBlock Grid.Column="0" Text="IPC Domain Socket:" FontSize="12.5" Foreground="{DynamicResource MutedBrush}" />
-                                            <TextBlock Grid.Column="1" Text="{Binding IpcPipeText}" FontFamily="Monospace" FontSize="12" />
-                                        </Grid>
-                                        <Grid ColumnDefinitions="150,*">
-                                            <TextBlock Grid.Column="0" Text="Multi-tier tables:" FontSize="12.5" Foreground="{DynamicResource MutedBrush}" />
-                                            <TextBlock Grid.Column="1" Text="smart_samples_raw (7d) · smart_samples_hourly (1y) · smart_samples_daily · process_io · alerts · settings" FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
-                                        </Grid>
+                                        <TextBlock Text="Does NVMe Sentinel upload my disk history or telemetry online?" FontWeight="Medium" FontSize="13.5" />
+                                        <TextBlock Text="No, absolutely never. NVMe Sentinel is 100% offline and open-source. All write logs, process attributions, and health metrics are saved exclusively to a local database (history.db) on your own device. The application makes zero outgoing network connections."
+                                                   FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" LineHeight="19" />
                                     </StackPanel>
                                 </Border>
 
-                                <!-- User Terminal Inspection & Editing Guide -->
-                                <StackPanel Spacing="6">
-                                    <TextBlock Text="Terminal Inspection &amp; Editing Guide (sqlite3):" FontSize="13" FontWeight="Medium" />
-                                    <Border Background="{DynamicResource SidebarBgBrush}" BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="1" CornerRadius="6" Padding="14,12">
-                                        <StackPanel Spacing="4">
-                                            <TextBlock Text="# 1. Inspect registered drive hardware inventory:" FontSize="11.5" Foreground="{DynamicResource MutedBrush}" FontFamily="Monospace" />
-                                            <TextBlock Text="sqlite3 ~/.local/share/nvme-sentinel/telemetry.db &quot;SELECT device_id, model, firmware, capacity_bytes / 1e9 || ' GB' FROM devices;&quot;" FontSize="11.5" FontFamily="Monospace" />
-                                            <TextBlock Text="# 2. Query recent 5-minute written deltas &amp; temperatures:" FontSize="11.5" Foreground="{DynamicResource MutedBrush}" FontFamily="Monospace" Margin="0,6,0,0" />
-                                            <TextBlock Text="sqlite3 ~/.local/share/nvme-sentinel/telemetry.db &quot;SELECT datetime(bucket_start_ts, 'unixepoch'), delta_bytes_written / 1e9 || ' GB', avg_temp_c || ' °C' FROM smart_samples_raw ORDER BY bucket_start_ts DESC LIMIT 5;&quot;" FontSize="11.5" FontFamily="Monospace" />
-                                            <TextBlock Text="# 3. Manually checkpoint WAL &amp; compact database:" FontSize="11.5" Foreground="{DynamicResource MutedBrush}" FontFamily="Monospace" Margin="0,6,0,0" />
-                                            <TextBlock Text="sqlite3 ~/.local/share/nvme-sentinel/telemetry.db &quot;PRAGMA wal_checkpoint(TRUNCATE); VACUUM;&quot;" FontSize="11.5" FontFamily="Monospace" />
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
+                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="Can I change where NVMe Sentinel saves its database?" FontWeight="Medium" FontSize="13.5" />
+                                        <TextBlock Text="Yes. Go to Settings &amp; alerts under the 'Data &amp; local storage' section. You can specify a custom directory to store history.db on another drive or folder. You can also click 'Open folder' at any time to inspect or back up your database."
+                                                   FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" LineHeight="19" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="Does running NVMe Sentinel cause wear on my SSD?" FontWeight="Medium" FontSize="13.5" />
+                                        <TextBlock Text="No. NVMe Sentinel is engineered specifically to prevent SSD wear. It collects read/write metrics every second in system RAM (0 disk writes). It only commits consolidated history to disk once every 10 minutes (or immediately if a critical hardware error occurs). The background service uses minimal memory and ~0.1% CPU."
+                                                   FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" LineHeight="19" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Category 2: Hardware & System Behavior -->
+                        <Border Classes="panel" Padding="22,18">
+                            <StackPanel Spacing="16">
+                                <TextBlock Text="Hardware &amp; System Behavior" FontSize="14.5" FontWeight="SemiBold" />
+
+                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="Why does 'Unsafe Shutdowns' increase by 1 every time I restart my computer?" FontWeight="Medium" FontSize="13.5" />
+                                        <TextBlock Text="Your SSD and data are completely safe. On many modern laptops (Lenovo ThinkBook/ThinkPad, Dell XPS, Asus, HP) paired with OEM SSDs (Samsung PM9B1/PM9A1, Kioxia, Micron), the motherboard cuts PCIe rail power during a normal reboot slightly before the SSD controller finishes writing its internal shutdown flag. Because your operating system cleanly unmounted your files beforehand, no corruption occurs. NVMe Sentinel recognizes clean reboot power transitions, logs them quietly as informational events, and avoids false alarm warning popups."
+                                                   FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" LineHeight="19" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="What is a safe operating temperature for an NVMe SSD?" FontWeight="Medium" FontSize="13.5" />
+                                        <TextBlock Text="Most NVMe SSDs operate comfortably between 35°C and 65°C. Unlike CPUs, SSD NAND flash actually operates more efficiently and experiences less physical stress during writes when warm (above 30°C–40°C). If your drive exceeds 75°C, it will automatically throttle its speed to protect itself. If temperatures exceed 80°C, inspect your cooling airflow or ensure your SSD has a proper thermal pad/heatsink."
+                                                   FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" LineHeight="19" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Category 3: Health Score & Drive Endurance (TBW) -->
+                        <Border Classes="panel" Padding="22,18">
+                            <StackPanel Spacing="16">
+                                <TextBlock Text="Drive Health &amp; Endurance (TBW)" FontSize="14.5" FontWeight="SemiBold" />
+
+                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="What does the 'Drive health score' (%) mean?" FontWeight="Medium" FontSize="13.5" />
+                                        <TextBlock Text="The Health Score indicates the remaining estimated endurance of your SSD flash memory. When brand new, it starts at 100%. As data is written over months and years, flash cells experience wear, and the percentage decreases gradually. Scores above 90% indicate like-new condition, 50%–89% indicate normal healthy aging, and below 20% recommend ensuring routine file backups are up to date."
+                                                   FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" LineHeight="19" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="If my health score reaches 0% or exceeds rated TBW, will the drive stop working?" FontWeight="Medium" FontSize="13.5" />
+                                        <TextBlock Text="No. The manufacturer's TBW (Terabytes Written) rating is a warranty endurance benchmark, not an expiration timer. High-quality NVMe drives frequently continue operating reliably at 150%–300% of their rated TBW before experiencing physical flash read-only lockouts."
+                                                   FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" LineHeight="19" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Category 4: Alerts & Workload Profiles -->
+                        <Border Classes="panel" Padding="22,18">
+                            <StackPanel Spacing="16">
+                                <TextBlock Text="Alerts &amp; Workload Profiles" FontSize="14.5" FontWeight="SemiBold" />
+
+                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="Which Workload Alert Profile should I pick?" FontWeight="Medium" FontSize="13.5" />
+                                        <TextBlock Text="Choose the profile matching your primary computer use:&#x0a;• Office / General: Best for web browsing, office documents, email, and media streaming (warns if an app writes &gt; ~8 GB in 5 min).&#x0a;• Gaming / Downloads: Best for gaming and regular Steam/Epic launcher updates (tolerates bursts up to ~35 GB in 5 min).&#x0a;• Creator / Workstation: Best for 4K video editing, code compiles, and virtual machines (tolerates bursts up to ~100 GB in 5 min).&#x0a;• Dynamic TBW: Automatically calculates an endurance threshold based on your SSD's factory endurance rating."
+                                                   FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" LineHeight="19" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+                                    <StackPanel Spacing="6">
+                                        <TextBlock Text="What are 'Write Culprit Processes'?" FontWeight="Medium" FontSize="13.5" />
+                                        <TextBlock Text="If an abnormal write spike occurs, NVMe Sentinel identifies which running applications wrote the most data during that interval. This helps you identify runaway background apps (such as a looping browser cache, an unthrottled backup tool, or an misbehaving database) before they consume gigabytes of SSD endurance unnoticed."
+                                                   FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" LineHeight="19" />
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </Border>
 

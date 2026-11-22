@@ -47,6 +47,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(IsLiveProcessesPage))]
     [NotifyPropertyChangedFor(nameof(IsSmartPage))]
     [NotifyPropertyChangedFor(nameof(IsSettingsPage))]
+    [NotifyPropertyChangedFor(nameof(IsFaqPage))]
     [NotifyPropertyChangedFor(nameof(CurrentPageTitle))]
     private int _selectedPageIndex;
 
@@ -55,6 +56,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public bool IsLiveProcessesPage => SelectedPageIndex == 2;
     public bool IsSmartPage => SelectedPageIndex == 3;
     public bool IsSettingsPage => SelectedPageIndex == 4;
+    public bool IsFaqPage => SelectedPageIndex == 5;
 
     public string CurrentPageTitle => SelectedPageIndex switch
     {
@@ -63,6 +65,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         2 => "Active processes",
         3 => "SMART registers",
         4 => "Settings & alerts",
+        5 => "Help & FAQ",
         _ => "Overview"
     };
 
@@ -191,7 +194,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty] private string _daemonMemoryFormatted = "—";
     [ObservableProperty] private string _databaseSizeText = "—";
     [ObservableProperty] private string _databasePathText = AppPaths.GetDatabasePath();
-    public string DatabaseDirectoryText => AppPaths.GetDataDirectory();
+    [ObservableProperty] private string _databaseDirectoryText = AppPaths.GetDataDirectory();
+    [ObservableProperty] private string _editCustomDataDirectory = string.Empty;
     public string IpcPipeText => AppPaths.GetIpcPipeName();
     [ObservableProperty] private string _lastFlushSummary = "—";
     [ObservableProperty] private string _appVersionText = $"v{typeof(MainWindowViewModel).Assembly.GetName().Version?.ToString(3) ?? "1.0.0"}";
@@ -250,11 +254,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             double resolved = SpikeThresholdCalculator.ResolveEffectiveThresholdGb(dummySettings, ratedTbw);
             return profile switch
             {
-                AlertProfile.Office => $"~{resolved:F1} GB / 5 min (Office/General: browsing, typing, light cache)",
-                AlertProfile.Gaming => $"~{resolved:F1} GB / 5 min (Gaming/Download: Steam, Epic downloads & unpacking)",
-                AlertProfile.Creator => $"~{resolved:F1} GB / 5 min (Creator/Workstation: 4K video exports, CAD, VMs)",
-                AlertProfile.DynamicDwpd => $"~{resolved:F1} GB / 5 min (Dynamic: based on {ratedTbw / 1e12:F0} TBW rating @ 5-yr warranty & 12x burst)",
-                AlertProfile.Custom => $"{resolved:F1} GB / 5 min (Custom user threshold)",
+                AlertProfile.Office => $"Limit: ~{resolved:F1} GB / 5 min · Recommended for general use",
+                AlertProfile.Gaming => $"Limit: ~{resolved:F1} GB / 5 min · For games, downloads & updates",
+                AlertProfile.Creator => $"Limit: ~{resolved:F1} GB / 5 min · For video editing, renders & VMs",
+                AlertProfile.DynamicDwpd => $"Limit: ~{resolved:F1} GB / 5 min · Auto-calculated from drive endurance",
+                AlertProfile.Custom => $"Limit: {resolved:F1} GB / 5 min · Custom limit",
                 _ => $"{resolved:F1} GB / 5 min"
             };
         }
@@ -508,6 +512,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 SpikeThresholdGbPer5Min = Math.Max(0.5, EditSpikeThresholdGb),
                 SustainedSpikeThresholdCycles = Math.Clamp(EditSustainedCycles, 1, 5),
                 ProcessWhitelist = whitelist,
+                CustomDatabaseDirectory = string.IsNullOrWhiteSpace(EditCustomDataDirectory) ? null : EditCustomDataDirectory.Trim(),
                 WarningTempCelsius = Math.Clamp(EditWarningTempC, 45, 105),
                 CriticalTempCelsius = Math.Clamp(EditCriticalTempC, 55, 115),
                 EnableDesktopNotifications = EditEnableNotifications,
@@ -581,7 +586,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         try
         {
-            var dir = AppPaths.GetDataDirectory();
+            var dir = !string.IsNullOrWhiteSpace(DatabaseDirectoryText) && Directory.Exists(DatabaseDirectoryText)
+                ? DatabaseDirectoryText
+                : AppPaths.GetDataDirectory();
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 Process.Start(new ProcessStartInfo("explorer.exe", dir) { UseShellExecute = true });
@@ -594,11 +601,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             {
                 Process.Start("xdg-open", dir);
             }
-            ShowBanner($"Opened directory: {dir}");
+            ShowBanner($"Opened folder: {dir}");
         }
         catch (Exception ex)
         {
-            ShowBanner($"Could not open directory: {ex.Message}");
+            ShowBanner($"Could not open folder: {ex.Message}");
         }
     }
 
@@ -848,6 +855,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             EditDarkTheme = dash.Settings.DarkTheme;
             EditStartAtLogin = dash.Status.AutostartInstalled;
             EditUseBinaryUnits = dash.Settings.UseBinaryUnits;
+            EditCustomDataDirectory = dash.Settings.CustomDatabaseDirectory ?? string.Empty;
+            DatabasePathText = dash.Status.DatabasePath;
+            DatabaseDirectoryText = Path.GetDirectoryName(dash.Status.DatabasePath) ?? AppPaths.GetDataDirectory();
 
             if (dev is not null && dash.Settings.CustomRatedTbwTb.TryGetValue(dev.DeviceId, out double cTb))
             {
