@@ -7,7 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-VERSION="${1:-1.3.1}"
+VERSION="${1:-1.3.2}"
 ARCH="${2:-arm64}" # arm64 or x64
 RID="osx-${ARCH}"
 

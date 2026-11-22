@@ -2,7 +2,7 @@
 ; Produces a native, single-file Setup.exe with desktop/start-menu shortcuts and uninstaller
 
 #define MyAppName "NVMe Sentinel"
-#define MyAppVersion "1.3.1"
+#define MyAppVersion "1.3.2"
 #define MyAppPublisher "Khoi Pham"
 #define MyAppURL "https://github.com/khoipm06/nvme-sentinel"
 #define MyAppExeName "nvme-sentinel.exe"

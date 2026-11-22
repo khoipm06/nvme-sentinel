@@ -1,3 +1,38 @@
+## NVMe Sentinel v1.3.2 Release Notes
+
+### Highlights
+
+NVMe Sentinel v1.3.2 delivers **true native packaging** across all major desktop operating systems (Windows `.exe` installer, Linux `.deb` package, macOS `.dmg` disk image) alongside a **comprehensive 3-turn architecture, concurrency, and security audit** that hardens the entire codebase.
+
+---
+
+### What's New & Fixed
+
+1. **Native App Packaging (No More Script-Only Installs)**:
+   - **Windows**: Native Inno Setup installer (`nvme-sentinel-v1.3.2-win-x64-setup.exe`). Installs cleanly to `%LocalAppData%\Programs`, creates Start Menu and Desktop shortcuts, adds an uninstaller in Windows Settings, and configures optional login autostart.
+   - **Linux**: Official Debian / Ubuntu package (`nvme-sentinel_1.3.2_amd64.deb`) with integrated user systemd service and FreeDesktop launcher. Standalone `install.sh` remains available for Arch, Fedora, openSUSE, and other distros.
+   - **macOS**: Native drag-and-drop `.dmg` installer (`NVMe-Sentinel-v1.3.2-osx-*.dmg`) containing the full `NVMe Sentinel.app` bundle with Gatekeeper bypass instructions for unsigned open-source binaries.
+
+2. **Core Storage & Data Persistence Fix**:
+   - Resolved a race condition where resetting in-memory write deltas simultaneously zeroed the bucket instances queued for database flushing, ensuring 100% of physical bytes written are accurately recorded in SQLite.
+
+3. **Concurrency & Thread Safety**:
+   - Enforced UI thread dispatching (`Dispatcher.UIThread.CheckAccess`) across all IPC snapshot handlers, eliminating Avalonia collection-binding race conditions.
+   - Hardened daemon IPC subscriber streaming with per-connection concurrency gates to prevent corrupted interleaved writes under high-frequency polling.
+
+4. **Hardware Spec & Security Hardening**:
+   - **NVMe 1.4/2.0 Spec Compliance**: Upgraded Data Units Read/Written decoding on Windows IOCTL to full 128-bit unsigned integers (`UInt128`), preventing 64-bit truncation on high-capacity and enterprise drives.
+   - **Command Injection Prevention**: Hardened macOS administrator elevation with strict BSD disk path regex validation (`^/dev/disk\d+(s\d+)?$`).
+   - **Process Tree Hygiene**: Added tree termination on cancellation across Linux, macOS, and Windows child processes.
+
+5. **Stability, Arithmetic & UI Robustness**:
+   - Fixed potential stack overflow in `ByteFormatter.FormatBytes` when formatting `long.MinValue`.
+   - Added NaN and Infinity protection in custom chart rendering controls (`LiveThroughputChartControl`, `RadialHealthGauge`).
+   - Migrated Windows login autostart from `reg.exe` subprocess calls to native .NET Registry APIs.
+   - Purged all temporary prompt comments and dead calculations across XAML and C# files.
+
+---
+
 ## NVMe Sentinel v1.3.0 Release Notes
 
 ### Highlights

@@ -7,7 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-VERSION="${1:-1.3.1}"
+VERSION="${1:-1.3.2}"
 ARCH="amd64"
 RID="linux-x64"
 
@@ -57,12 +57,13 @@ if [ -f "$ROOT_DIR/assets/nvme-sentinel.svg" ]; then
 fi
 
 # 4. Systemd user service
-cp "$SCRIPT_DIR/nvme-sentinel.service" "$PKG_DIR/usr/lib/systemd/user/"
+sed 's|%h/\.local/share/nvme-sentinel/nvme-sentinel-daemon|/usr/bin/nvme-sentinel-daemon|g' \
+    "$SCRIPT_DIR/nvme-sentinel.service" > "$PKG_DIR/usr/lib/systemd/user/nvme-sentinel.service"
 
 # 5. DEBIAN/control
-cat << 'EOF' > "$PKG_DIR/DEBIAN/control"
+cat << EOF > "$PKG_DIR/DEBIAN/control"
 Package: nvme-sentinel
-Version: 1.3.1
+Version: ${VERSION}
 Section: utils
 Priority: optional
 Architecture: amd64

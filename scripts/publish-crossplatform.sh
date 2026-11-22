@@ -6,15 +6,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 
-RAW_VER="${1:-${GITHUB_REF_NAME:-1.3.1}}"
+RAW_VER="${1:-${GITHUB_REF_NAME:-1.3.2}}"
 VERSION="${RAW_VER#v}"
 DIST_DIR="$ROOT_DIR/dist"
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
 
 DOTNET_CMD=(dotnet)
-if [ -f "/var/home/khoipm/.local/share/mise/dotnet-root/dotnet" ]; then
-    DOTNET_CMD=("/var/home/khoipm/.local/share/mise/dotnet-root/dotnet")
+if command -v dotnet >/dev/null 2>&1; then
+    DOTNET_CMD=(dotnet)
+elif [ -f "$HOME/.local/share/mise/dotnet-root/dotnet" ]; then
+    DOTNET_CMD=("$HOME/.local/share/mise/dotnet-root/dotnet")
 elif command -v mise >/dev/null 2>&1; then
     DOTNET_CMD=(mise exec -- dotnet)
 fi
