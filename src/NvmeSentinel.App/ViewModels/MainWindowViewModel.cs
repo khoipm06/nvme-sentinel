@@ -706,6 +706,12 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private void ApplyDashboardSnapshot(DashboardSnapshot dash, bool loadSettingsIntoEditor)
     {
+        if (!Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => ApplyDashboardSnapshot(dash, loadSettingsIntoEditor));
+            return;
+        }
+
         _cachedDashboard = dash;
         IsDaemonConnected = true;
         ConnectionBadgeText = "Daemon active";

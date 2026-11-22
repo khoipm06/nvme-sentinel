@@ -7,7 +7,7 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.ThemeDictionaries>
-                <!-- Graphite & Safety Orange (taste-skill hardware/devtool dark-neutral) -->
+                <!-- Dark Theme: Graphite & Safety Orange -->
                 <ResourceDictionary x:Key="Dark">
                     <SolidColorBrush x:Key="AppBgBrush" Color="#0E0F11" />
                     <SolidColorBrush x:Key="SidebarBgBrush" Color="#121316" />
@@ -24,7 +24,7 @@
                     <SolidColorBrush x:Key="AccentTintBrush" Color="#24E8571F" />
                 </ResourceDictionary>
 
-                <!-- Warm Stone Paper & Signal Terracotta (taste-skill light-neutral) -->
+                <!-- Light Theme: Warm Stone Paper & Signal Terracotta -->
                 <ResourceDictionary x:Key="Light">
                     <SolidColorBrush x:Key="AppBgBrush" Color="#F4F4F2" />
                     <SolidColorBrush x:Key="SidebarBgBrush" Color="#ECECE8" />
@@ -61,7 +61,7 @@
             <Setter Property="CornerRadius" Value="10" />
         </Style>
 
-        <!-- Compact sidebar navigation row (.ui-win__nav) -->
+        <!-- Compact sidebar navigation row -->
         <Style Selector="Button.nav-row">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />

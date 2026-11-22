@@ -290,7 +290,7 @@ public sealed class TimeMachineChartControl : Control
         }
         else if (MetricMode == ChartMetricMode.WriteDelta && pts.Count <= 96)
         {
-            // taste-skill stat bar rule: neutral fill-3 bars by default; accent only on spikes & latest bar
+            // Interval write deltas: neutral bars for standard periods, accent highlighted for write spikes and current window
             var neutralBarColor = IsDarkTheme ? Color.FromArgb(62, 239, 240, 241) : Color.FromArgb(52, 20, 20, 19);
             double barW = Math.Clamp(plot.Width / (pts.Count * 1.55), 3.0, 14.0);
 

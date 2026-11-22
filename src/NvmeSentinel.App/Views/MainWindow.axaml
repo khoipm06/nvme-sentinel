@@ -17,7 +17,7 @@
     <Border Background="{DynamicResource AppBgBrush}">
         <Grid ColumnDefinitions="220,*">
 
-            <!-- ==================== LEFT SIDEBAR (.ui-win__side) ==================== -->
+            <!-- ==================== LEFT SIDEBAR ==================== -->
             <Border Grid.Column="0"
                     Background="{DynamicResource SidebarBgBrush}"
                     BorderBrush="{DynamicResource HairlineBrush}"
@@ -25,7 +25,7 @@
                     Padding="14,16">
                 <Grid RowDefinitions="Auto,Auto,*,Auto">
 
-                    <!-- Brand Mark (Ink, never accent — base.css rule) -->
+                    <!-- Brand Mark and App Title -->
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="4,0,4,18">
                         <Border Width="24" Height="24" CornerRadius="6" Background="{DynamicResource InkBrush}">
                             <PathIcon Width="13" Height="13" Foreground="{DynamicResource AppBgBrush}"
@@ -137,7 +137,7 @@
             <!-- ==================== MAIN WORKSPACE ==================== -->
             <Grid Grid.Column="1" RowDefinitions="52,Auto,*">
 
-                <!-- Top Command Bar (.ui-win__bar: 52px tall, 1px hairline under it) -->
+                <!-- Top Command Bar -->
                 <Border Grid.Row="0"
                         Background="{DynamicResource AppBgBrush}"
                         BorderBrush="{DynamicResource HairlineBrush}"
@@ -445,7 +445,7 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Process Attribution Table (.ui-win__cols + .ui-win__row hairline system) -->
+                        <!-- Process Attribution Table -->
                         <Border Classes="panel" Padding="0">
                             <StackPanel>
                                 <Border Padding="22,16,22,12" BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,0,0,1">

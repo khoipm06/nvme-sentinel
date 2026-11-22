@@ -80,8 +80,16 @@ public sealed class LiveThroughputChartControl : Control
         var reads = ReadHistory ?? [];
         var writes = WriteHistory ?? [];
         double peak = 1_000_000.0; // 1 MB/s minimum floor
-        if (reads.Count > 0) peak = Math.Max(peak, reads.Max() * 1.18);
-        if (writes.Count > 0) peak = Math.Max(peak, writes.Max() * 1.18);
+        if (reads.Count > 0)
+        {
+            var validReads = reads.Where(double.IsFinite);
+            if (validReads.Any()) peak = Math.Max(peak, validReads.Max() * 1.18);
+        }
+        if (writes.Count > 0)
+        {
+            var validWrites = writes.Where(double.IsFinite);
+            if (validWrites.Any()) peak = Math.Max(peak, validWrites.Max() * 1.18);
+        }
 
         // fx-chart style dashed rules with quiet inline labels on the left
         for (int i = 0; i <= 2; i++)
@@ -126,7 +134,8 @@ public sealed class LiveThroughputChartControl : Control
         for (int i = 0; i < n; i++)
         {
             double x = plot.Left + plot.Width * i / (n - 1.0);
-            double norm = Math.Clamp(values[i] / maxVal, 0.0, 1.0);
+            double val = double.IsFinite(values[i]) ? values[i] : 0.0;
+            double norm = maxVal > 0 ? Math.Clamp(val / maxVal, 0.0, 1.0) : 0.0;
             double y = plot.Bottom - plot.Height * norm;
             pts.Add(new Point(x, y));
         }

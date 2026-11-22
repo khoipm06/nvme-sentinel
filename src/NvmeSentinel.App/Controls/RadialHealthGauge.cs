@@ -63,14 +63,15 @@ public sealed class RadialHealthGauge : Control
 
         const double startDeg = 135.0;
         const double totalSweepDeg = 270.0;
-        double pct = Math.Clamp(Score / 100.0, 0.0, 1.0);
+        double scoreVal = double.IsFinite(Score) ? Score : 100.0;
+        double pct = Math.Clamp(scoreVal / 100.0, 0.0, 1.0);
 
         var trackColor = IsDarkTheme ? Color.FromArgb(28, 239, 240, 241) : Color.FromArgb(28, 20, 20, 19);
         var trackPen = new Pen(new SolidColorBrush(trackColor), stroke, lineCap: PenLineCap.Round);
         DrawArc(context, center, radius, startDeg, totalSweepDeg, trackPen);
 
         // Ink by default; accent only when attention is warranted
-        var arcColor = Score < 75
+        var arcColor = scoreVal < 75
             ? Color.Parse("#E8571F")
             : (IsDarkTheme ? Color.Parse("#EFF0F1") : Color.Parse("#18181B"));
 
@@ -88,13 +89,13 @@ public sealed class RadialHealthGauge : Control
         IBrush fgMain = IsDarkTheme ? new SolidColorBrush(Color.Parse("#EFF0F1")) : new SolidColorBrush(Color.Parse("#141413"));
         IBrush fgMuted = IsDarkTheme ? new SolidColorBrush(Color.Parse("#8E9196")) : new SolidColorBrush(Color.Parse("#65645E"));
 
-        var scoreText = Score >= 99.95 ? "100%" : $"{Score:F1}%";
+        var scoreText = scoreVal >= 99.95 ? "100%" : $"{scoreVal:F1}%";
         var scoreFt = new FormattedText(
             scoreText,
             CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
             new Typeface(FontFamily.Default, FontStyle.Normal, FontWeight.SemiBold),
-            size * (Score >= 99.95 ? 0.20 : 0.175),
+            size * (scoreVal >= 99.95 ? 0.20 : 0.175),
             fgMain);
 
         context.DrawText(scoreFt, new Point(center.X - scoreFt.Width / 2.0, center.Y - scoreFt.Height * 0.62));
