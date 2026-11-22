@@ -67,51 +67,19 @@ Pre-built native release packages are available on the [GitHub Releases](https:/
 
 ---
 
-## Developer Quick Start
+### Building from Source (Optional)
 
-### Prerequisites
-- **.NET 10 SDK** (or run a self-contained published binary with zero runtime dependencies).
-
-### Build & Test
+If you have the **.NET 10 SDK** installed, you can build from source:
 ```bash
 dotnet build NvmeSentinel.sln -c Release
-dotnet test NvmeSentinel.sln
-```
-
-### Launch Desktop GUI (Auto-spawns Daemon if not running)
-```bash
 ./scripts/run-gui.sh
 ```
 
-### Daemon CLI Commands
-```bash
-./scripts/run-daemon.sh              # Run background daemon in foreground
-./scripts/run-daemon.sh --status     # Query running daemon status over IPC
-./scripts/run-daemon.sh --waybar     # Output live stats formatted for Waybar / Polybar / status bars
-./scripts/run-daemon.sh --export csv # Export historical telemetry to CSV (or JSON)
-./scripts/run-daemon.sh --once       # Print one-shot hardware & SMART JSON snapshot
-./scripts/run-daemon.sh --stop       # Gracefully flush buffers and stop daemon
-```
-
-### Publish Self-Contained Native Binaries (Linux, Windows, macOS)
-```bash
-./scripts/publish-crossplatform.sh
-```
-Outputs standalone binaries under `publish/linux-x64`, `publish/win-x64`, and `publish/osx-arm64`.
-
 ---
 
-## Technical Reference & Hardware FAQ
+## Privacy & Security
 
-For a rigorous, mathematically exact breakdown of NVMe telemetry, estimation models, and hardware behavior:
-- **[Estimation Formulas & Hardware Mechanics FAQ](docs/ESTIMATION_AND_FAQ.md)**:
-  - Exact NVMe Log Page 02h unit mathematics ($1,000 \times 512 = 512,000$ bytes/unit) & Decimal SI vs Binary IEC (9.95% discrepancy).
-  - 27-point capacity lattice with 3.5% snapping margin for enterprise read-intensive (960GB, 1.92TB, 3.84TB, etc.) and mixed-use drives.
-  - Multi-window linear burn-rate regressions ($R_{24h}$, $R_{7d}$, $R_{30d}$, $R_{\text{lifetime}}$) and Tri-State lifespan forecasting engine.
-  - Write Amplification Factor (WAF) surge causes, Dynamic Pseudo-SLC (pSLC) folding mechanics, and the wear-mitigating impact of NVMe Dataset Management Deallocate (`DSM TRIM`).
-  - Thermal mechanics: Fowler-Nordheim tunneling in cold flash ($<20^\circ\text{C}$), Arrhenius electron leakage at elevated temperatures, and NVMe TMT1/TMT2/WCTEMP/CCTEMP throttling.
-  - PCIe link width scaling (ASPM L0s/L1.1/L1.2/APST power saving vs hardware LTSSM equalization failures).
-  - DRAM-less SSDs, Host Memory Buffer (HMB) DMA performance overhead, and IOMMU (Intel VT-d / AMD-Vi / ARM SMMUv3) protection.
-  - Available Spare depletion, Critical Warning bit 0, and irreversible permanent read-only hardware lockouts.
-  - Divergence between `/proc/[pid]/io` (`write_bytes` vs `cancelled_write_bytes`), VFS page cache coalescing, and NVMe controller block transfers.
+- **100% Offline & Private**: All data is stored locally in `history.db`. Zero network requests, analytics, or tracking.
+- **Minimal System Impact**: Telemetry is buffered in RAM and flushed every 10 minutes to minimize SSD writes. CPU usage is `< 0.1%`.
+- **User-Space & Non-Root**: Runs cleanly without root/administrator privileges for everyday monitoring. Privileged self-tests elevate only when explicitly requested via standard OS prompts (Polkit / UAC).
 
