@@ -70,6 +70,9 @@ jobs:
           files: |
             dist/nvme-sentinel-*.tar.gz
             dist/nvme-sentinel-*.zip
+            dist/*.deb
+            dist/*.dmg
+            dist/*setup.exe
             dist/SHA256SUMS.txt
           generate_release_notes: false
           draft: false

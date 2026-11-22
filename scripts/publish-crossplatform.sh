@@ -139,11 +139,19 @@ for RID in "${RIDS[@]}"; do
     rm -rf "$BUILD_ROOT_FDD"
 done
 
-# 3. Checksums
+# 3. Native Distributions (deb & macOS bundles)
+if [ -f "$ROOT_DIR/packaging/linux/build-deb.sh" ]; then
+    echo "=================================================="
+    echo "Building native Debian package (.deb)..."
+    echo "=================================================="
+    bash "$ROOT_DIR/packaging/linux/build-deb.sh" "$VERSION" || true
+fi
+
+# 4. Checksums
 echo "=================================================="
 echo "Generating SHA256SUMS.txt..."
 echo "=================================================="
-(cd "$DIST_DIR" && sha256sum nvme-sentinel-* > SHA256SUMS.txt)
+(cd "$DIST_DIR" && sha256sum * > SHA256SUMS.txt 2>/dev/null || sha256sum nvme-sentinel-* > SHA256SUMS.txt)
 
 echo "All release packages created in $DIST_DIR:"
 ls -lh "$DIST_DIR"
