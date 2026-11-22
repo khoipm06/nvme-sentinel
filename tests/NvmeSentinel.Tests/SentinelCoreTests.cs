@@ -138,6 +138,14 @@ public sealed class SentinelCoreTests
 
         var binRate = ByteFormatter.FormatRate(155_500_000, ByteUnitStandard.BinaryIec);
         Assert.Equal("148.3 MiB/s", binRate);
+
+        // Trailing zero suppression
+        long exact12Tb = 12_000_000_000_000L;
+        Assert.Equal("12 TB", ByteFormatter.FormatBytes(exact12Tb, decimals: 3, ByteUnitStandard.DecimalSi));
+        Assert.Equal("12.5 TB", ByteFormatter.FormatBytes(12_500_000_000_000L, decimals: 3, ByteUnitStandard.DecimalSi));
+        Assert.Equal("12.54 TB", ByteFormatter.FormatBytes(12_540_000_000_000L, decimals: 3, ByteUnitStandard.DecimalSi));
+        Assert.Equal("0 B", ByteFormatter.FormatBytes(0));
+        Assert.Equal("0 MB/s", ByteFormatter.FormatRate(0));
     }
 
     [Fact]

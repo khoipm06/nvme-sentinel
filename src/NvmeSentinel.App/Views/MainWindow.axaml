@@ -145,7 +145,7 @@
                         Padding="24,0">
                     <Grid ColumnDefinitions="Auto,14,*,Auto">
                         <TextBlock Grid.Column="0" Text="{Binding CurrentPageTitle}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="2" Text="{Binding DriveHeaderMeta}" FontSize="13" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,16,0" />
+                        <TextBlock Grid.Column="2" Text="{Binding DriveHeaderMeta}" FontSize="13" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DriveHeaderMeta}" Margin="0,0,16,0" />
                         <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                             <Button Classes="btn-secondary" Content="{Binding ThemeButtonLabel}" Command="{Binding ToggleThemeCommand}" />
                             <Button Classes="btn-primary" Content="Record snapshot" Command="{Binding FlushNowCommand}" />
@@ -890,26 +890,16 @@
                         <Border Classes="panel" Padding="22,18">
                             <StackPanel Spacing="14">
                                 <Grid ColumnDefinitions="*,Auto,Auto">
-                                    <TextBlock Grid.Column="0" Text="Data &amp; local storage" FontSize="15.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="0" Text="Data storage" FontSize="15.5" FontWeight="SemiBold" VerticalAlignment="Center" />
                                     <Button Grid.Column="1" Classes="btn-secondary" Height="28" Content="Copy path" Command="{Binding CopyDatabasePathCommand}" Margin="0,0,8,0" />
                                     <Button Grid.Column="2" Classes="btn-secondary" Height="28" Content="Open folder" Command="{Binding OpenDatabaseFolderCommand}" />
                                 </Grid>
-
-                                <!-- 100% Offline Privacy Guarantee Badge -->
-                                <Border Background="{DynamicResource SubtleFillBrush}" CornerRadius="6" Padding="14,10">
-                                    <Grid ColumnDefinitions="Auto,*">
-                                        <TextBlock Grid.Column="0" Text="🛡️" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                        <TextBlock Grid.Column="1"
-                                                   Text="100% Offline &amp; Local: All write history and health metrics are saved exclusively on this machine in history.db. Zero data is ever transmitted across the network."
-                                                   FontSize="12.5" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                                    </Grid>
-                                </Border>
 
                                 <!-- Storage Location & Custom Folder Setting -->
                                 <Border BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0,1,0,0" Padding="0,12">
                                     <Grid ColumnDefinitions="*,Auto">
                                         <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,16,0">
-                                            <TextBlock Text="Database file location" FontWeight="Medium" />
+                                            <TextBlock Text="Database file" FontWeight="Medium" />
                                             <TextBlock Text="{Binding DatabasePathText}" FontFamily="Monospace" FontSize="12" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
                                         </StackPanel>
                                         <TextBlock Grid.Column="1" Text="{Binding DatabaseSizeText}" FontFamily="Monospace" FontSize="12.5" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
@@ -920,11 +910,11 @@
                                     <Grid ColumnDefinitions="*,260">
                                         <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,16,0" VerticalAlignment="Center">
                                             <TextBlock Text="Custom storage folder" FontWeight="Medium" />
-                                            <TextBlock Text="Optionally move history.db to another folder or secondary drive. Leave blank for default." FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
+                                            <TextBlock Text="Store history.db in a custom directory. Leave blank for default." FontSize="13" Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
                                         </StackPanel>
                                         <TextBox Grid.Column="1"
                                                  Text="{Binding EditCustomDataDirectory}"
-                                                 PlaceholderText="Leave empty for default directory"
+                                                 PlaceholderText="Default directory"
                                                  VerticalAlignment="Center" />
                                     </Grid>
                                 </Border>

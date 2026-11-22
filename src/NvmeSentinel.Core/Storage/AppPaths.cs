@@ -117,6 +117,7 @@ public static class ByteFormatter
         }
 
         double value = bytes;
+        string unit;
         if (std == ByteUnitStandard.BinaryIec)
         {
             string[] units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
@@ -127,9 +128,8 @@ public static class ByteFormatter
                 idx++;
             }
 
-            return idx == 0
-                ? $"{bytes} B"
-                : $"{value.ToString($"F{decimals}", CultureInfo.InvariantCulture)} {units[idx]}";
+            if (idx == 0) return $"{bytes} B";
+            unit = units[idx];
         }
         else
         {
@@ -142,10 +142,16 @@ public static class ByteFormatter
                 idx++;
             }
 
-            return idx == 0
-                ? $"{bytes} B"
-                : $"{value.ToString($"F{decimals}", CultureInfo.InvariantCulture)} {units[idx]}";
+            if (idx == 0) return $"{bytes} B";
+            unit = units[idx];
         }
+
+        string numStr = value.ToString($"F{decimals}", CultureInfo.InvariantCulture);
+        if (numStr.Contains('.'))
+        {
+            numStr = numStr.TrimEnd('0').TrimEnd('.');
+        }
+        return $"{numStr} {unit}";
     }
 
     public static string FormatRate(double bytesPerSec, ByteUnitStandard? standard = null)
@@ -153,7 +159,7 @@ public static class ByteFormatter
         var std = standard ?? CurrentStandard;
         if (bytesPerSec <= 0.5)
         {
-            return std == ByteUnitStandard.BinaryIec ? "0.0 MiB/s" : "0.0 MB/s";
+            return std == ByteUnitStandard.BinaryIec ? "0 MiB/s" : "0 MB/s";
         }
 
         double baseUnit = std == ByteUnitStandard.BinaryIec ? 1024.0 : 1000.0;
@@ -161,16 +167,24 @@ public static class ByteFormatter
         string mb = std == ByteUnitStandard.BinaryIec ? "MiB/s" : "MB/s";
         string gb = std == ByteUnitStandard.BinaryIec ? "GiB/s" : "GB/s";
 
+        if (bytesPerSec < baseUnit)
+        {
+            return $"{bytesPerSec:F0} B/s";
+        }
+
         if (bytesPerSec < baseUnit * baseUnit)
         {
-            return $"{(bytesPerSec / baseUnit).ToString("F1", CultureInfo.InvariantCulture)} {kb}";
+            string s = (bytesPerSec / baseUnit).ToString("F1", CultureInfo.InvariantCulture).TrimEnd('0').TrimEnd('.');
+            return $"{s} {kb}";
         }
 
         if (bytesPerSec < baseUnit * baseUnit * baseUnit)
         {
-            return $"{(bytesPerSec / (baseUnit * baseUnit)).ToString("F1", CultureInfo.InvariantCulture)} {mb}";
+            string s = (bytesPerSec / (baseUnit * baseUnit)).ToString("F1", CultureInfo.InvariantCulture).TrimEnd('0').TrimEnd('.');
+            return $"{s} {mb}";
         }
 
-        return $"{(bytesPerSec / (baseUnit * baseUnit * baseUnit)).ToString("F2", CultureInfo.InvariantCulture)} {gb}";
+        string sg = (bytesPerSec / (baseUnit * baseUnit * baseUnit)).ToString("F2", CultureInfo.InvariantCulture).TrimEnd('0').TrimEnd('.');
+        return $"{sg} {gb}";
     }
 }

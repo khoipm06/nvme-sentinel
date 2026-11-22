@@ -727,7 +727,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             DriveModel = dev.Model;
             CapacityFormatted = ByteFormatter.FormatBytes(dev.CapacityBytes, 2);
             DriveHeaderMeta = $"{dev.Model}  ·  {dev.PcieSummary}  ·  {CapacityFormatted}";
-            ControllerSpecText = $"{dev.DevicePath} ({dev.PcieSummary}, {dev.PowerState})";
+            ControllerSpecText = $"{dev.DevicePath} · {dev.PcieSummary}";
             SerialAndFirmwareText = $"{dev.SerialNumber} · FW {dev.FirmwareRevision}";
             PcieBadgeText = dev.PcieSummary;
             PowerStateText = dev.PowerState;
@@ -739,16 +739,17 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             if (forecast is not null)
             {
                 HealthScore = forecast.HealthScorePrecise;
-                HealthScoreFormatted = forecast.HealthScorePrecise >= 99.95 ? "100%" : $"{forecast.HealthScorePrecise:F1}%";
+                HealthScoreFormatted = forecast.HealthScorePrecise >= 99.95 ? "100%" : $"{forecast.HealthScorePrecise:0.#}%";
                 HealthGrade = forecast.HealthGrade;
-                WearSubtitle = $"{forecast.HealthScorePrecise:F1}% health · {forecast.HardwarePercentUsed}% wear";
-                HealthSummaryLine = $"{forecast.HardwarePercentUsed}% SMART wear · {smart?.AvailableSpare ?? 100}% spare";
+                WearSubtitle = $"{forecast.HealthScorePrecise:0.#}% health · {forecast.HardwarePercentUsed}% wear";
+                HealthSummaryLine = $"{forecast.HardwarePercentUsed}% wear · {smart?.AvailableSpare ?? 100}% spare";
 
                 CurrentTbwFormatted = ByteFormatter.FormatBytes(forecast.CurrentTbwBytes, 3);
-                RatedTbwFormatted = $"{ByteFormatter.FormatBytes(forecast.RatedTbwBytes, 1)} rated";
+                RatedTbwFormatted = $"{ByteFormatter.FormatBytes(forecast.RatedTbwBytes, 0)}";
                 TbwProgressPercent = Math.Clamp(forecast.TbwUsedPercentage, 0, 100);
                 RatedTbwSourceText = forecast.RatedTbwSource;
-                TbwRawBytesTooltip = $"Exact: {forecast.CurrentTbwBytes:N0} bytes ({forecast.CurrentTbwBytes / 512_000L:N0} NVMe data units)";
+                long todayW = live?.TodayBytesWritten ?? 0;
+                TbwRawBytesTooltip = $"Total written: {forecast.CurrentTbwBytes:N0} bytes ({forecast.CurrentTbwBytes / 512_000L:N0} NVMe data units)\nToday: {todayW:N0} bytes\nRated endurance: {forecast.RatedTbwBytes:N0} bytes ({forecast.TbwUsedPercentage:0.#}% used)";
 
                 BurnRateFormatted = forecast.EffectiveBurnRateBytesPerDay > 0
                     ? $"{ByteFormatter.FormatBytes((long)forecast.EffectiveBurnRateBytesPerDay, 1)}/day"
@@ -757,8 +758,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 if (forecast.EstimatedDaysRemaining is { } days)
                 {
                     RemainingLifeFormatted = days >= 365
-                        ? $"{(days / 365.25):F1} yrs"
-                        : $"{Math.Ceiling(days):F0} days";
+                        ? $"{(days / 365.25):0.#} yrs"
+                        : $"{Math.Ceiling(days):0} days";
                     ExhaustionDateFormatted = forecast.EstimatedExhaustionDateUtc?.ToLocalTime().ToString("MMM yyyy", CultureInfo.InvariantCulture) ?? "—";
                     EnduranceSublineText = $"{BurnRateFormatted} · Est. {ExhaustionDateFormatted}";
                 }
@@ -769,16 +770,15 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                     EnduranceSublineText = $"{BurnRateFormatted} · Nominal wear";
                 }
 
-                long todayW = live?.TodayBytesWritten ?? 0;
-                TbwSublineText = $"+{ByteFormatter.FormatBytes(todayW, 2)} today · of {ByteFormatter.FormatBytes(forecast.RatedTbwBytes, 0)} ({forecast.CurrentTbwBytes:N0} B)";
+                TbwSublineText = $"+{ByteFormatter.FormatBytes(todayW, 1)} today · of {ByteFormatter.FormatBytes(forecast.RatedTbwBytes, 0)}";
             }
 
             if (smart is not null)
             {
-                CurrentTempFormatted = $"{smart.CompositeTempCelsius:F1} °C";
+                CurrentTempFormatted = $"{smart.CompositeTempCelsius:0.#} °C";
                 IsTempElevated = smart.CompositeTempCelsius >= dash.Settings.WarningTempCelsius;
-                AvailableSpareFormatted = $"{smart.AvailableSpare}% (min {smart.SpareThreshold}%)";
-                PowerOnHoursFormatted = $"{smart.PowerOnHours:N0} h ({(smart.PowerOnHours / 24.0):F0} d)";
+                AvailableSpareFormatted = $"{smart.AvailableSpare}%";
+                PowerOnHoursFormatted = $"{smart.PowerOnHours:N0} h";
                 PowerCyclesFormatted = $"{smart.PowerCycles:N0}";
                 UnsafeShutdownsFormatted = $"{smart.UnsafeShutdowns:N0}";
                 MediaErrorsFormatted = $"{smart.MediaErrors:N0}";
@@ -882,13 +882,13 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         LiveReadRateFormatted = ByteFormatter.FormatRate(live.ReadBytesPerSec);
         LiveWriteRateFormatted = ByteFormatter.FormatRate(live.WriteBytesPerSec);
         LiveIopsFormatted = $"{live.ReadIops:F0} R · {live.WriteIops:F0} W IOPS";
-        CurrentTempFormatted = $"{live.CompositeTempCelsius:F1} °C";
+        CurrentTempFormatted = $"{live.CompositeTempCelsius:0.#} °C";
         IsTempElevated = live.CompositeTempCelsius >= (settings?.WarningTempCelsius ?? EditWarningTempC);
         CurrentTbwFormatted = ByteFormatter.FormatBytes(live.EstimatedCurrentTbwBytes, 3);
-        TodayWrittenFormatted = $"+{ByteFormatter.FormatBytes(live.TodayBytesWritten, 2)} today";
-        TodayReadFormatted = $"{ByteFormatter.FormatBytes(live.TodayBytesRead, 2)} read today";
-        TbwRawBytesTooltip = $"Exact: {live.EstimatedCurrentTbwBytes:N0} bytes ({live.EstimatedCurrentTbwBytes / 512_000L:N0} NVMe data units)";
-        TbwSublineText = $"{TodayWrittenFormatted} · of {RatedTbwFormatted} ({live.EstimatedCurrentTbwBytes:N0} B)";
+        TodayWrittenFormatted = $"+{ByteFormatter.FormatBytes(live.TodayBytesWritten, 1)} today";
+        TodayReadFormatted = $"{ByteFormatter.FormatBytes(live.TodayBytesRead, 1)} read today";
+        TbwRawBytesTooltip = $"Total written: {live.EstimatedCurrentTbwBytes:N0} bytes ({live.EstimatedCurrentTbwBytes / 512_000L:N0} NVMe data units)\nToday: {live.TodayBytesWritten:N0} bytes";
+        TbwSublineText = $"{TodayWrittenFormatted} · of {RatedTbwFormatted}";
         PowerStateText = live.PowerState;
 
         if (live.Sensors.Count > 0)
@@ -947,19 +947,19 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             SensorBadges.Add(new SensorBadgeItem
             {
                 Label = s.Label,
-                ValueText = $"{s.Celsius:F1} °C",
+                ValueText = $"{s.Celsius:0.#} °C",
                 IsHot = s.Celsius >= warn
             });
         }
 
         if (sensors.Count >= 2)
         {
-            var extras = sensors.Skip(1).Take(2).Select(s => $"{s.Label}: {s.Celsius:F0} °C");
+            var extras = sensors.Skip(1).Take(2).Select(s => $"{s.Label}: {s.Celsius:0.#} °C");
             ThermalSensorsInlineText = string.Join(" · ", extras);
         }
         else
         {
-            ThermalSensorsInlineText = $"Warn at {warn:F0} °C";
+            ThermalSensorsInlineText = $"Warn at {warn:0.#} °C";
         }
     }
 
