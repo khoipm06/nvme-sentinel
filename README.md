@@ -1,85 +1,101 @@
 # NVMe Sentinel
 
-A native, cross-platform NVMe SSD health, endurance (TBW), and process write-attribution telemetry suite built with **.NET** and **Avalonia UI**.
+NVMe Sentinel is an open-source desktop app and background service for monitoring NVMe SSD health, tracking endurance (TBW), and attributing disk writes to specific running processes over time.
 
-Unlike traditional point-in-time S.M.A.R.T. viewers or browser-based server dashboards, **NVMe Sentinel** pairs an ultra-lightweight user-space background daemon with a GPU-accelerated native desktop dashboard so you can inspect **exact historical TBW growth**, **thermal behavior**, and **which processes caused disk writes during any past time window**.
-
----
-
-## Key Capabilities
-
-- **Low-Wear Background Daemon (`nvme-sentinel-daemon`)**
-  - Samples live block throughput, IOPS, thermal sensors, and per-process disk I/O every second in RAM (`0` disk writes while buffering).
-  - Flushes batched 5-minute buckets to an embedded WAL-mode SQLite time-series store every 10 minutes (or immediately upon detecting an abnormal write spike, thermal event, or S.M.A.R.T. integrity change).
-  - Automatic multi-tier retention: **5-minute resolution** for 7 days, **hourly rollups** for 1 year, and **daily rollups** indefinitely.
-- **Interactive TBW Time-Machine**
-  - Inspect cumulative TBW, interval write deltas, temperature history, and endurance wear across `1H`, `24H`, `7D`, `30D`, `1Y`, or `All Time`.
-  - **Drag-to-Brush Selection**: Drag horizontally across any spike on the timeline to isolate that exact sub-window and view ranked **Top Write Culprit Processes** responsible for those writes.
-- **Endurance & Lifespan Forecast**
-  - Computes 24-hour, 7-day, 30-day, and lifetime daily burn rates (`GB/day`) against rated drive endurance (model presets, wear-curve extrapolation, or custom TBW override) to project remaining lifespan.
-- **Live Hardware & Per-Process Telemetry**
-  - Real-time Read/Write throughput (`MB/s`), Read/Write `IOPS`, PCIe Link Generation & Lane Width verification, power state, multi-sensor temperatures, and live per-process disk write monitor.
-- **Active Diagnostics, Smart Alerts & System Tray**
-  - Trigger NVMe Controller **Short** and **Extended Self-Tests** (elevating via Polkit / UAC / macOS authorization only when invoked).
-  - Native desktop notifications for runaway write loops, high composite temperatures, media integrity errors, or unsafe shutdowns.
-  - Native System Tray icon with live health/thermal state, quick snapshot flush, and independent **Quit GUI (Keep Daemon Running)** mode.
-  - One-click login autostart registration (`systemd --user` on Linux, `LaunchAgent` on macOS, `HKCU\...\Run` on Windows) and `CSV` / `JSON` report export.
+Available for **Windows**, **macOS**, and **Linux**.
 
 ---
 
-## Installation & Releases
+## Why NVMe Sentinel?
 
-Pre-built native release packages are available on the [GitHub Releases](https://github.com/khoipm06/nvme-sentinel/releases) page:
+Most disk health tools only show a static, point-in-time view of S.M.A.R.T. registers. They tell you your current percentage of drive wear, but cannot tell you **which background program wrote 40 GB to your disk overnight**.
 
-- **Standalone Packages** (`*-standalone.tar.gz` / `*-standalone.zip`): Fully self-contained native bundles with embedded .NET runtime. Zero external dependencies required.
-- **Framework-Dependent Packages** (`*-fdd.tar.gz` / `*-fdd.zip`): Lightweight portable archives (~12–15 MB) for machines with .NET 10 SDK/runtime installed.
-
-### Cross-Platform Installation
-
-#### Windows (10 / 11 x64)
-1. Download `nvme-sentinel-v1.3.0-win-x64-standalone.zip` from Releases.
-2. Extract the ZIP archive.
-3. **Portable run**: Double-click `nvme-sentinel.exe` to run immediately without installation.
-4. **Desktop & Start Menu integration (No Admin Required)**:
-   - Double-click `install.cmd` (or right-click `install.ps1` -> *Run with PowerShell*).
-   - Installs binaries into `%LOCALAPPDATA%\NvmeSentinel\`, generates Start Menu / Desktop shortcuts, and sets up tray integration.
-   - To uninstall cleanly anytime, run `uninstall.ps1`.
-
-#### macOS (Apple Silicon M1/M2/M3/M4 & Intel x64)
-1. Download `nvme-sentinel-v1.3.0-osx-arm64-standalone.tar.gz` (Apple Silicon) or `nvme-sentinel-v1.3.0-osx-x64-standalone.tar.gz` (Intel).
-2. Extract and run user-space installer:
-   ```bash
-   tar -xzf nvme-sentinel-v1.3.0-osx-arm64-standalone.tar.gz
-   cd nvme-sentinel-v1.3.0-osx-arm64-standalone
-   ./install.sh
-   ```
-3. Installs binaries into `~/Applications/NVMe Sentinel`, registers background monitoring LaunchAgent (`~/Library/LaunchAgents/com.khoipm.nvme-sentinel.plist`), and symlinks to `~/.local/bin/nvme-sentinel`.
-
-#### Linux (Fedora, Silverblue, Ubuntu, Debian, Arch, SteamOS)
-1. Download `nvme-sentinel-v1.3.0-linux-x64-standalone.tar.gz`.
-2. Extract and run non-root user installer:
-   ```bash
-   tar -xzf nvme-sentinel-v1.3.0-linux-x64-standalone.tar.gz
-   cd nvme-sentinel-v1.3.0-linux-x64-standalone
-   ./install.sh
-   ```
-3. Installs binaries to `~/.local/share/nvme-sentinel/`, creates desktop launcher, registers hicolor icons, and enables background `systemd --user` monitoring daemon (`nvme-sentinel.service`). To uninstall, run `~/.local/share/nvme-sentinel/uninstall.sh`.
+NVMe Sentinel bridges that gap:
+- **Zero-wear buffering**: Collects throughput, IOPS, temperatures, and per-process disk activity in RAM, only writing consolidated records to a local database once every 10 minutes.
+- **Historical write attribution**: Select any past time interval to see exactly which applications wrote data and how much each contributed.
+- **Endurance forecasting**: Calculates daily burn rates against manufacturer endurance ratings (TBW) to project remaining drive life.
+- **Smart write-spike alerts**: Customizable workload profiles (Office, Gaming, Workstation, Dynamic DWPD) filter out routine activity and alert you only when background processes misbehave repeatedly.
+- **Privacy by design**: Runs 100% locally. No telemetry sent to remote servers, no background network connections, and no cloud accounts required.
 
 ---
 
-### Building from Source (Optional)
+## Installation
 
-If you have the **.NET 10 SDK** installed, you can build from source:
+Download the latest release for your operating system from the [Releases](https://github.com/khoipm06/nvme-sentinel/releases) page.
+
+### Windows (10 / 11 x64)
+
+- **Installer (Recommended)**: Download and run `nvme-sentinel-v1.3.2-win-x64-setup.exe`.
+  - Installs to `%LocalAppData%\Programs\NVMe Sentinel` (no Administrator rights needed).
+  - Creates Desktop and Start Menu shortcuts.
+  - Automatically registers in Windows Settings (*Installed apps*) for clean uninstallation.
+- **Portable**: Download `nvme-sentinel-v1.3.2-win-x64-standalone.zip`, extract, and run `nvme-sentinel.exe`.
+
+### Linux (Debian, Ubuntu, Fedora, Arch, etc.)
+
+- **Debian / Ubuntu**: Download and install the `.deb` package:
+  ```bash
+  sudo apt install ./nvme-sentinel_1.3.2_amd64.deb
+  ```
+  This installs binaries to `/usr/bin/`, adds the application launcher to your desktop environment, and configures a user-level background service (`systemctl --user enable --now nvme-sentinel`).
+- **Other distributions (Arch, Fedora, openSUSE, etc.)**:
+  Download `nvme-sentinel-v1.3.2-linux-x64-standalone.tar.gz`, extract, and run the user-space installer:
+  ```bash
+  tar -xzf nvme-sentinel-v1.3.2-linux-x64-standalone.tar.gz
+  cd nvme-sentinel-v1.3.2-linux-x64-standalone
+  ./install.sh
+  ```
+
+### macOS (Apple Silicon & Intel)
+
+- **Disk Image (Recommended)**:
+  1. Download `NVMe-Sentinel-v1.3.2-osx-arm64.dmg` (Apple Silicon M1–M4) or `NVMe-Sentinel-v1.3.2-osx-x64.dmg` (Intel).
+  2. Open the DMG and drag **NVMe Sentinel.app** to your `/Applications` folder.
+  3. Since this is an open-source binary without an Apple Developer ID signature, allow it to run by right-clicking the app and selecting **Open**, or run:
+     ```bash
+     xattr -d com.apple.quarantine "/Applications/NVMe Sentinel.app"
+     ```
+- **Tarball Installer**:
+  Download the standalone `.tar.gz`, extract, and run `./install.sh` to configure the user `LaunchAgent`.
+
+---
+
+## Desktop Status Bar Integration (Waybar / Polybar)
+
+If you use a custom desktop environment or tiling window manager on Linux, the daemon provides a built-in formatting flag for Waybar or Polybar:
+
 ```bash
+nvme-sentinel-daemon --waybar
+```
+
+Sample JSON output:
+```json
+{"text":"44°C 1.2MB/s","tooltip":"Samsung 980 PRO 2TB\nHealth: 98%\nTBW: 24.50 TB\nTemp: 44°C\nWrites: 1.2 MB/s","class":"healthy","percentage":98}
+```
+
+---
+
+## Building from Source
+
+Requirements: [.NET 10 SDK](https://dotnet.microsoft.com/)
+
+```bash
+# Clone the repository
+git clone https://github.com/khoipm06/nvme-sentinel.git
+cd nvme-sentinel
+
+# Build all projects
 dotnet build NvmeSentinel.sln -c Release
+
+# Run tests
+dotnet test
+
+# Launch GUI
 ./scripts/run-gui.sh
 ```
 
 ---
 
-## Privacy & Security
+## License
 
-- **100% Offline & Private**: All data is stored locally in `history.db`. Zero network requests, analytics, or tracking.
-- **Minimal System Impact**: Telemetry is buffered in RAM and flushed every 10 minutes to minimize SSD writes. CPU usage is `< 0.1%`.
-- **User-Space & Non-Root**: Runs cleanly without root/administrator privileges for everyday monitoring. Privileged self-tests elevate only when explicitly requested via standard OS prompts (Polkit / UAC).
-
+Distributed under the [MIT License](LICENSE).
