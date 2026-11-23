@@ -60,18 +60,7 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
 
         var persistedSmart = _store.LoadLatestSmartSnapshots();
         _devices = await _nvmeProvider.DiscoverDevicesAsync(ct);
-        if (_devices.Count == 0)
-        {
-            var stored = _store.LoadDevices();
-            if (stored.Count > 0)
-            {
-                _devices = stored;
-            }
-        }
-        else
-        {
-            _store.UpsertDevices(_devices);
-        }
+        _store.UpsertDevices(_devices);
 
         // Prime process tracker baseline
         _processTracker.Poll(1.0, 0);
@@ -79,15 +68,10 @@ public sealed class SentinelMonitorEngine : IAsyncDisposable
         foreach (var dev in _devices)
         {
             var snap = await _nvmeProvider.ReadSmartAsync(dev, forceRefresh: true, ct);
-            if (snap is null && persistedSmart.TryGetValue(dev.DeviceId, out var cachedSnap))
-            {
-                snap = cachedSnap;
-            }
-
             if (snap is not null)
             {
                 snap.TriggerReason = "startup";
-                if (persistedSmart.TryGetValue(dev.DeviceId, out var prev) && !ReferenceEquals(prev, snap))
+                if (persistedSmart.TryGetValue(dev.DeviceId, out var prev))
                 {
                     EvaluateSmartTransitions(dev, prev, snap);
                 }

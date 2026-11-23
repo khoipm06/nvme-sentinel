@@ -48,7 +48,6 @@ Runs on **Linux**, **Windows**, and **macOS**.
 - **Endurance & lifespan projections**: Tracks daily write burn rates against factory endurance ratings (TBW) to estimate remaining drive lifespan.
 - **Configurable alert profiles**: Choose an alert profile matching your workload (Office, Gaming, Workstation, or DWPD-calculated) with sustained spike detection to filter out one-off large file downloads.
 - **Live hardware diagnostics**: Real-time read/write throughput, IOPS, PCIe generation/width verification, controller self-tests (Short and Extended), and multi-sensor thermals.
-- **Desktop status bar & CLI export**: Integration for Waybar/Polybar via `--waybar`, plus terminal telemetry exports to CSV or JSON.
 - **In-app documentation**: Built-in Help & FAQ tab answering common questions about write amplification, OEM reboot power cuts, and wear leveling.
 
 ---

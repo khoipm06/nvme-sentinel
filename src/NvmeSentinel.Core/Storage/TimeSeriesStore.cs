@@ -229,40 +229,6 @@ public sealed class TimeSeriesStore : IDisposable
         }
     }
 
-    public List<NvmeDeviceInfo> LoadDevices()
-    {
-        lock (_sync)
-        {
-            using var conn = OpenConnection();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT device_id, model, serial, firmware, capacity_bytes FROM devices;";
-            using var reader = cmd.ExecuteReader();
-            var list = new List<NvmeDeviceInfo>();
-            while (reader.Read())
-            {
-                var id = reader.GetString(0);
-                var model = reader.GetString(1);
-                var serial = reader.GetString(2);
-                var fw = reader.GetString(3);
-                var cap = reader.GetInt64(4);
-                list.Add(new NvmeDeviceInfo
-                {
-                    DeviceId = id,
-                    ControllerName = id,
-                    BlockDeviceName = id,
-                    DevicePath = id,
-                    Model = model,
-                    SerialNumber = serial,
-                    FirmwareRevision = fw,
-                    CapacityBytes = cap,
-                    PowerState = "Active",
-                    BackendSource = "Database Store"
-                });
-            }
-            return list;
-        }
-    }
-
     public void UpsertDevices(IEnumerable<NvmeDeviceInfo> devices)
     {
         lock (_sync)

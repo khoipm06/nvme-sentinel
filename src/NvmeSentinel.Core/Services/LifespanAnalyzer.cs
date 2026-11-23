@@ -47,17 +47,11 @@ public static class LifespanAnalyzer
         const double OneGigabyte = 1_000_000_000.0;
         const double MaxPracticalHorizonDays = 3652.5; // Cap practical silicon exhaustion projection at 10.0 years
 
-        // Safety threshold: NAND flash enters a high-risk degradation zone (cell leakage, ECC recovery fatigue,
-        // spare block exhaustion) well before reaching absolute 0% endurance. We project lifespan to the
-        // critical safety threshold (10% endurance remaining / 90% rated TBW consumed) rather than catastrophic failure.
-        long dangerThresholdBytes = (long)(ratedBytes * 0.90);
-        long remainingToDanger = Math.Max(0, dangerThresholdBytes - currentTbw);
-
         // If daily burn rate is negligible (< 1 GB/day), endurance wear is not the limiting failure factor;
         // physical component aging, capacitor degradation, and dielectric charge leakage (JEDEC JESD218) dominate.
-        if (effectiveRate >= OneGigabyte && remainingToDanger > 0)
+        if (effectiveRate >= OneGigabyte && remaining > 0)
         {
-            double days = remainingToDanger / effectiveRate;
+            double days = remaining / effectiveRate;
             if (days <= MaxPracticalHorizonDays)
             {
                 estDays = Math.Round(days, 1);
@@ -69,7 +63,7 @@ public static class LifespanAnalyzer
                 estDays = MaxPracticalHorizonDays;
             }
         }
-        else if (remainingToDanger == 0 && ratedBytes > 0)
+        else if (remaining == 0 && ratedBytes > 0)
         {
             estDays = 0;
             exhaustionDate = now;
