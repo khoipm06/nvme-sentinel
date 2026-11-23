@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # NVMe Sentinel - Linux Native .rpm Package Builder
-# Generates a standard RPM package for Fedora / RHEL / openSUSE
+# Generates a standard RPM package for Fedora, RHEL, CentOS Stream, and openSUSE
 
 set -euo pipefail
 
