@@ -59,33 +59,33 @@ Pre-built binaries are available on the [Releases](https://github.com/khoipm06/n
 ### Windows (10 / 11 x64)
 
 - **Native Installer (Recommended)**:
-  Download and run `nvme-sentinel-v1.3.2-win-x64-setup.exe`.
+  Download and run `nvme-sentinel-v1.4.0-win-x64-setup.exe`.
   - Installs to `%LocalAppData%\Programs\NVMe Sentinel` without requiring administrator privileges.
   - Adds Start Menu and Desktop shortcuts.
   - Registers a clean uninstaller in Windows Settings (*Installed apps*).
   - Optional autostart at user login.
 - **Portable**:
-  Download `nvme-sentinel-v1.3.2-win-x64-standalone.zip`, extract anywhere, and launch `nvme-sentinel.exe`.
+  Download `nvme-sentinel-v1.4.0-win-x64-standalone.zip`, extract anywhere, and launch `nvme-sentinel.exe`.
 
 ### Linux
 
 - **Debian / Ubuntu / Mint (`.deb`)**:
   ```bash
-  sudo apt install ./nvme-sentinel_1.3.2_amd64.deb
+  sudo apt install ./nvme-sentinel_1.4.0_amd64.deb
   systemctl --user enable --now nvme-sentinel
   ```
 
 - **Fedora / RHEL / openSUSE (`.rpm`)**:
   ```bash
-  sudo dnf install ./nvme-sentinel-1.3.2-1.x86_64.rpm
+  sudo dnf install ./nvme-sentinel-1.4.0-1.x86_64.rpm
   systemctl --user enable --now nvme-sentinel
   ```
 
 - **Other distributions (User-space tarball)**:
-  Download `nvme-sentinel-v1.3.2-linux-x64-standalone.tar.gz`, extract, and run:
+  Download `nvme-sentinel-v1.4.0-linux-x64-standalone.tar.gz`, extract, and run:
   ```bash
-  tar -xzf nvme-sentinel-v1.3.2-linux-x64-standalone.tar.gz
-  cd nvme-sentinel-v1.3.2-linux-x64-standalone
+  tar -xzf nvme-sentinel-v1.4.0-linux-x64-standalone.tar.gz
+  cd nvme-sentinel-v1.4.0-linux-x64-standalone
   ./install.sh
   ```
   To uninstall later, run `~/.local/share/nvme-sentinel/uninstall.sh`.
@@ -94,8 +94,8 @@ Pre-built binaries are available on the [Releases](https://github.com/khoipm06/n
 
 - **Native Disk Image (`.dmg`)**:
   1. Download the disk image for your Mac architecture:
-     - Apple Silicon (M1–M4): `NVMe-Sentinel-v1.3.2-osx-arm64.dmg`
-     - Intel: `NVMe-Sentinel-v1.3.2-osx-x64.dmg`
+     - Apple Silicon (M1–M4): `NVMe-Sentinel-v1.4.0-osx-arm64.dmg`
+     - Intel: `NVMe-Sentinel-v1.4.0-osx-x64.dmg`
   2. Double-click the `.dmg` file and drag **NVMe Sentinel.app** into your **Applications** folder.
   3. **First launch**: Because NVMe Sentinel is open-source software distributed outside the Mac App Store:
      - Open **Finder** and navigate to **Applications**.

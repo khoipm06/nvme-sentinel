@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 
-RAW_VER="${1:-${GITHUB_REF_NAME:-1.3.2}}"
+RAW_VER="${1:-${GITHUB_REF_NAME:-1.4.0}}"
 VERSION="${RAW_VER#v}"
 DIST_DIR="$ROOT_DIR/dist"
 rm -rf "$DIST_DIR"
