@@ -89,15 +89,6 @@ public partial class App : Application
         if (_viewModel is null || _mainWindow is null) return;
 
         await _viewModel.StartAsync();
-
-        // Optional automated UI screenshot tour mode for visual verification
-        int tourIdx = Array.FindIndex(Program.StartupArgs, a => a.Equals("--screenshot-tour", StringComparison.OrdinalIgnoreCase));
-        if (tourIdx >= 0 && tourIdx + 1 < Program.StartupArgs.Length)
-        {
-            var outDir = Program.StartupArgs[tourIdx + 1];
-            await _mainWindow.RunScreenshotTourAsync(outDir);
-            ExitApplication(desktop);
-        }
     }
 
     private void SetupSystemTray(IClassicDesktopStyleApplicationLifetime desktop)

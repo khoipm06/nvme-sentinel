@@ -141,12 +141,19 @@ for RID in "${RIDS[@]}"; do
     rm -rf "$BUILD_ROOT_FDD"
 done
 
-# 3. Native Distributions (deb & macOS bundles)
+# 3. Native Distributions (deb, rpm & installers)
 if [ -f "$ROOT_DIR/packaging/linux/build-deb.sh" ]; then
     echo "=================================================="
     echo "Building native Debian package (.deb)..."
     echo "=================================================="
     bash "$ROOT_DIR/packaging/linux/build-deb.sh" "$VERSION" || true
+fi
+
+if [ -f "$ROOT_DIR/packaging/linux/build-rpm.sh" ]; then
+    echo "=================================================="
+    echo "Building native RPM package (.rpm)..."
+    echo "=================================================="
+    bash "$ROOT_DIR/packaging/linux/build-rpm.sh" "$VERSION" || true
 fi
 
 # 4. Checksums
