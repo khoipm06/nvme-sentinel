@@ -1,7 +1,7 @@
 # NVMe Sentinel
 
 [![Release](https://img.shields.io/github/v/release/khoipm06/nvme-sentinel?color=2563eb&label=release)](https://github.com/khoipm06/nvme-sentinel/releases)
-[![Build & Test](https://img.shields.io/github/actions/workflow/status/khoipm06/nvme-sentinel/release.yml?branch=main&label=build)](https://github.com/khoipm06/nvme-sentinel/actions)
+[![Build & Test](https://img.shields.io/github/actions/workflow/status/khoipm06/nvme-sentinel/ci.yml?branch=main&label=build)](https://github.com/khoipm06/nvme-sentinel/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)](#installation)
 [![.NET](https://img.shields.io/badge/.NET-10.0-512bd4.svg)](https://dotnet.microsoft.com/)

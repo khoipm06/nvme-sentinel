@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore NvmeSentinel.sln
+
+      - name: Build
+        run: dotnet build NvmeSentinel.sln --no-restore --configuration Release
+
+      - name: Run Unit Tests
+        run: dotnet test NvmeSentinel.sln --no-build --configuration Release --verbosity normal
