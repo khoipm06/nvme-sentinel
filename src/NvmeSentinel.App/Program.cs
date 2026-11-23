@@ -14,7 +14,7 @@ internal static class Program
 
         if (argsSet.Contains("--version") || argsSet.Contains("-v"))
         {
-            var ver = typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
+            var ver = typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "1.4.0";
             Console.WriteLine($"nvme-sentinel v{ver}");
             return;
         }
