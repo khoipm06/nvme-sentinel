@@ -525,4 +525,65 @@ public sealed class SentinelCoreTests
         Assert.Equal(1_200_000_000_000_000L, tlcBytes); // 600 TB/TB * 2TB = 1200 TB
         Assert.Contains("TLC", tlcSource);
     }
+
+    [Fact]
+    public void TimeSeriesStore_LoadDevicesAndBuildDashboardSnapshot()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"nvme-sentinel-mock-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        var dbPath = Path.Combine(tempDir, "history.db");
+
+        try
+        {
+            using var store = new TimeSeriesStore(dbPath);
+            var dev = new NvmeDeviceInfo
+            {
+                DeviceId = "nvme0n1",
+                Model = "Samsung SSD 980 PRO 1TB",
+                SerialNumber = "S5GXNF0R102488",
+                FirmwareRevision = "5B2QGXA7",
+                CapacityBytes = 1_000_204_886_016L
+            };
+            store.UpsertDevices([dev]);
+
+            var snap = new SmartSnapshot
+            {
+                DeviceId = dev.DeviceId,
+                TimestampUtc = DateTimeOffset.UtcNow,
+                TotalBytesWritten = 24_580_000_000_000L,
+                TotalBytesRead = 31_200_000_000_000L,
+                PercentUsed = 3,
+                AvailableSpare = 100,
+                SpareThreshold = 10,
+                CompositeTempCelsius = 42.0,
+                PowerOnHours = 3450
+            };
+            store.FlushBucketsAndState(new List<BufferedBucket>(), new Dictionary<string, SmartSnapshot> { [dev.DeviceId] = snap }, new List<AlertEvent>());
+
+            var devices = store.LoadDevices();
+            Assert.NotEmpty(devices);
+            Assert.Equal("nvme0n1", devices[0].DeviceId);
+
+            var smart = store.LoadLatestSmartSnapshots();
+            Assert.True(smart.ContainsKey(dev.DeviceId));
+
+            var settings = new DaemonSettings();
+            var forecast = LifespanAnalyzer.Compute(dev, smart[dev.DeviceId], settings, store);
+            Assert.NotNull(forecast);
+
+            var dash = new DashboardSnapshot
+            {
+                Devices = devices,
+                LatestSmart = smart,
+                Forecasts = new Dictionary<string, LifespanForecast> { [dev.DeviceId] = forecast },
+                Settings = settings
+            };
+            var json = System.Text.Json.JsonSerializer.Serialize(dash);
+            Assert.NotEmpty(json);
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, recursive: true); } catch { }
+        }
+    }
 }

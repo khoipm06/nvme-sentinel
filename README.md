@@ -15,21 +15,27 @@ Runs on **Linux**, **Windows**, and **macOS**.
 ## Screenshots
 
 <p align="center">
+  <em>Dashboard — Dark Theme</em><br/>
   <img src="assets/screenshots/01-overview.png" alt="NVMe Sentinel Dashboard (Dark Theme)" width="850" />
 </p>
 
+<p align="center">
+  <em>Dashboard — Light Theme</em><br/>
+  <img src="assets/screenshots/02-overview-light.png" alt="NVMe Sentinel Dashboard (Light Theme)" width="850" />
+</p>
+
 <details>
-  <summary><b>Additional views (SMART Diagnostics & Light Theme)</b></summary>
+  <summary><b>Hardware Diagnostics & SMART Register Views</b></summary>
   <br/>
 
   <p align="center">
-    <em>Controller SMART Registers & Hardware Diagnostics</em><br/>
-    <img src="assets/screenshots/04-smart-diagnostics.png" alt="SMART Registers & Diagnostics" width="850" />
+    <em>Controller SMART Registers & Hardware Diagnostics (Dark Theme)</em><br/>
+    <img src="assets/screenshots/03-smart-diagnostics.png" alt="SMART Registers (Dark Theme)" width="850" />
   </p>
 
   <p align="center">
-    <em>Dashboard (Light Theme)</em><br/>
-    <img src="assets/screenshots/06-overview-light.png" alt="Overview Light Theme" width="850" />
+    <em>Controller SMART Registers & Hardware Diagnostics (Light Theme)</em><br/>
+    <img src="assets/screenshots/04-smart-diagnostics-light.png" alt="SMART Registers (Light Theme)" width="850" />
   </p>
 </details>
 
@@ -91,28 +97,18 @@ Pre-built binaries are available on the [Releases](https://github.com/khoipm06/n
   1. Download the disk image for your Mac architecture:
      - Apple Silicon (M1–M4): `NVMe-Sentinel-v1.3.2-osx-arm64.dmg`
      - Intel: `NVMe-Sentinel-v1.3.2-osx-x64.dmg`
-  2. Open the `.dmg` and drag **NVMe Sentinel.app** into `/Applications`.
-  3. **Gatekeeper clearance**: Because NVMe Sentinel is an open-source binary distributed outside the Mac App Store, macOS marks it with a quarantine attribute. Clear it by running:
-     ```bash
-     xattr -dr com.apple.quarantine "/Applications/NVMe Sentinel.app"
-     ```
-     *(Alternatively: In Finder, right-click `NVMe Sentinel.app`, choose **Open**, and confirm the prompt.)*
-  4. **Background daemon setup (optional)**:
-     To keep recording telemetry even after closing the desktop window, enable the background launchd service:
-     ```bash
-     mkdir -p ~/Library/LaunchAgents
-     cp "/Applications/NVMe Sentinel.app/Contents/Resources/com.khoipm.nvme-sentinel.plist" ~/Library/LaunchAgents/
-     launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.khoipm.nvme-sentinel.plist
-     ```
+  2. Double-click the `.dmg` file and drag **NVMe Sentinel.app** into your **Applications** folder.
+  3. **First launch**: Because NVMe Sentinel is open-source software distributed outside the Mac App Store:
+     - Open **Finder** and navigate to **Applications**.
+     - **Control-click** (or right-click) **NVMe Sentinel** and choose **Open**.
+     - In the confirmation prompt, click **Open**. (You only need to do this once).
+     - *If macOS shows a warning instead:* Open **System Settings** > **Privacy & Security**, scroll down to the **Security** section, and click **Open Anyway**.
+  4. **Start at login (optional)**:
+     - Open **System Settings** > **General** > **Login Items**.
+     - Under **Open at Login**, click the **+** button and select **NVMe Sentinel** from your Applications folder.
 
-- **Standalone Tarball (`.tar.gz`)**:
-  Download the standalone `.tar.gz`, extract, and run the automated installer:
-  ```bash
-  tar -xzf nvme-sentinel-v1.3.2-osx-arm64-standalone.tar.gz
-  cd nvme-sentinel-v1.3.2-osx-arm64-standalone
-  ./install.sh
-  ```
-  This installs binaries to `~/Applications/NVMe Sentinel`, registers the background `LaunchAgent`, and symlinks CLI tools to your PATH.
+- **Standalone Archive (`.tar.gz`)**:
+  If you prefer a terminal workflow or want to deploy headlessly, download the `.tar.gz` archive, extract it, and run `./install.sh`. This sets up the binary, registers a user `LaunchAgent` service, and links CLI commands to your path. To remove it later, run `uninstall.sh`.
 
 ---
 

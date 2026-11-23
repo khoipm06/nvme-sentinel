@@ -428,7 +428,7 @@ public sealed class TimeMachineChartControl : Control
                 ? "MMM dd HH:mm"
                 : "yyyy-MM-dd";
 
-        const int ticks = 5;
+        int ticks = Math.Clamp((int)(plot.Width / 130.0), 5, 8);
         for (int i = 0; i <= ticks; i++)
         {
             double frac = (double)i / ticks;

@@ -118,11 +118,20 @@ public sealed class LiveThroughputChartControl : Control
         // Write trace: the single precision accent (#E8571F) with soft fade
         DrawSeries(context, plot, writes, peak, Color.Parse("#E8571F"), fillArea: true, strokeWidth: 2.0);
 
-        // Axis endpoints
-        var leftAxisFt = new FormattedText("60s ago", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface("Monospace"), 11.0, labelBrush);
-        var rightAxisFt = new FormattedText("now", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface("Monospace"), 11.0, labelBrush);
-        context.DrawText(leftAxisFt, new Point(plot.Left, plot.Bottom + 5));
-        context.DrawText(rightAxisFt, new Point(plot.Right - rightAxisFt.Width, plot.Bottom + 5));
+        // Multi-point time axis markers across the 60-second live buffer
+        string[] timeLabels = ["60s ago", "45s", "30s", "15s", "now"];
+        for (int i = 0; i < timeLabels.Length; i++)
+        {
+            double frac = (double)i / (timeLabels.Length - 1);
+            double x = plot.Left + plot.Width * frac;
+            var ft = new FormattedText(timeLabels[i], CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface("Monospace"), 11.0, labelBrush);
+            double drawX = i == 0
+                ? plot.Left
+                : i == timeLabels.Length - 1
+                    ? plot.Right - ft.Width
+                    : Math.Clamp(x - ft.Width / 2.0, plot.Left, plot.Right - ft.Width);
+            context.DrawText(ft, new Point(drawX, plot.Bottom + 5));
+        }
     }
 
     private static void DrawSeries(DrawingContext ctx, Rect plot, IReadOnlyList<double> values, double maxVal, Color color, bool fillArea, double strokeWidth)

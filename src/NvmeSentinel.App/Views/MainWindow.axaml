@@ -223,7 +223,7 @@
 
                                 <!-- Cell 4: Endurance Horizon -->
                                 <StackPanel Grid.Column="6" Spacing="8" Margin="22,18"
-                                            ToolTip.Tip="Endurance horizon linearly extrapolated from weighted 30-day, 7-day, and lifetime burn rates against factory rated TBW.">
+                                            ToolTip.Tip="Endurance horizon to critical safety threshold (10% endurance remaining) linearly extrapolated from weighted 30-day, 7-day, and lifetime burn rates against factory rated TBW.">
                                     <TextBlock Text="Projected lifespan" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource MutedBrush}" />
                                     <TextBlock Text="{Binding RemainingLifeFormatted}" FontSize="30" FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding EnduranceSublineText}" FontSize="13" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis" />

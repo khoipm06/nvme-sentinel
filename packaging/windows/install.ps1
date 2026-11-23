@@ -10,6 +10,9 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $TargetDir = Join-Path $env:LOCALAPPDATA "NvmeSentinel"
 $StartMenuDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\NVMe Sentinel"
 $DesktopDir = [Environment]::GetFolderPath("Desktop")
+if ([string]::IsNullOrWhiteSpace($DesktopDir) -and (Test-Path "$env:USERPROFILE\Desktop")) {
+    $DesktopDir = "$env:USERPROFILE\Desktop"
+}
 
 Write-Host "Installing to: $TargetDir" -ForegroundColor Gray
 
@@ -42,14 +45,16 @@ $Shortcut.Description = "NVMe Hardware Health & Endurance Monitor"
 $Shortcut.Save()
 
 # 4. Create Desktop Shortcut
-$DesktopShortcut = $WshShell.CreateShortcut((Join-Path $DesktopDir "NVMe Sentinel.lnk"))
-$DesktopShortcut.TargetPath = $ExePath
-$DesktopShortcut.WorkingDirectory = $TargetDir
-if (Test-Path $IcoPath) {
-    $DesktopShortcut.IconLocation = "$IcoPath,0"
+if (-not [string]::IsNullOrWhiteSpace($DesktopDir) -and (Test-Path $DesktopDir)) {
+    $DesktopShortcut = $WshShell.CreateShortcut((Join-Path $DesktopDir "NVMe Sentinel.lnk"))
+    $DesktopShortcut.TargetPath = $ExePath
+    $DesktopShortcut.WorkingDirectory = $TargetDir
+    if (Test-Path $IcoPath) {
+        $DesktopShortcut.IconLocation = "$IcoPath,0"
+    }
+    $DesktopShortcut.Description = "NVMe Hardware Health & Endurance Monitor"
+    $DesktopShortcut.Save()
 }
-$DesktopShortcut.Description = "NVMe Hardware Health & Endurance Monitor"
-$DesktopShortcut.Save()
 
 Write-Host ""
 Write-Host "✔ NVMe Sentinel installed successfully!" -ForegroundColor Green
