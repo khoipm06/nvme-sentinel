@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NVMe Sentinel Cross-Platform Release Packaging Script
+# NVMe Sentinel - Cross-Platform Release Packaging & Distribution Script
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
